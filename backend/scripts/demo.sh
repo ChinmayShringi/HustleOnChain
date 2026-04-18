@@ -9,7 +9,7 @@
 set -u
 set -o pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 say() {
@@ -45,11 +45,11 @@ say "Nothing is broadcast. Nothing is deployed. Follow the printed commands to r
 pause
 
 step "STEP 1/10  Start grader service (background)"
-if [ -x "$REPO_ROOT/grader/.venv/bin/uvicorn" ]; then
-  say "launching: grader/.venv/bin/uvicorn app.main:app --port 8000 (background)"
+if [ -x "$REPO_ROOT/backend/grader/.venv/bin/uvicorn" ]; then
+  say "launching: backend/grader/.venv/bin/uvicorn app.main:app --port 8000 (background)"
   (
-    cd "$REPO_ROOT/grader"
-    "$REPO_ROOT/grader/.venv/bin/uvicorn" app.main:app --port 8000 >/tmp/agentwork-grader.log 2>&1 &
+    cd "$REPO_ROOT/backend/grader"
+    "$REPO_ROOT/backend/grader/.venv/bin/uvicorn" app.main:app --port 8000 >/tmp/agentwork-grader.log 2>&1 &
     echo $!
   ) >/tmp/agentwork-grader.pid
   GRADER_PID="$(cat /tmp/agentwork-grader.pid)"
@@ -57,14 +57,14 @@ if [ -x "$REPO_ROOT/grader/.venv/bin/uvicorn" ]; then
   sleep 2
 else
   say "grader venv not found. Skipping live start. To enable:"
-  say "  cd grader && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
+  say "  cd backend/grader && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
 fi
 
 step "STEP 2/10  Start skill status server (background)"
-if [ -f "$REPO_ROOT/skill/dist/index.js" ]; then
-  say "launching: node skill/dist/index.js (background, dry-run unless env is set)"
+if [ -f "$REPO_ROOT/backend/skill/dist/index.js" ]; then
+  say "launching: node backend/skill/dist/index.js (background, dry-run unless env is set)"
   (
-    cd "$REPO_ROOT/skill"
+    cd "$REPO_ROOT/backend/skill"
     node dist/index.js >/tmp/agentwork-skill.log 2>&1 &
     echo $!
   ) >/tmp/agentwork-skill.pid
@@ -73,7 +73,7 @@ if [ -f "$REPO_ROOT/skill/dist/index.js" ]; then
   sleep 1
 else
   say "skill not built. Skipping live start. To enable:"
-  say "  cd skill && npm install && npm run build"
+  say "  cd backend/skill && npm install && npm run build"
 fi
 
 step "STEP 3/10  Health check the grader"

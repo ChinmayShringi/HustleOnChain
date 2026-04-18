@@ -27,9 +27,10 @@ Full text diagram with repo-path annotations in `docs/TECHNICAL.md`.
 ## Reproduce in three commands
 
 ```bash
-cd contracts && forge test                                   # 17 passed
-cd ../grader && pytest tests/ --ignore=tests/test_sandbox.py # 45 passed, 5 skipped (52 w/ docker)
-cd ../skill && npm install && npm test                       # 37 passed
+cd backend/contracts && forge test                                   # 17 passed
+cd ../grader && pytest tests/ --ignore=tests/test_sandbox.py         # 46 passed, 5 skipped (53 w/ docker)
+cd ../skill && npm install && npm test                               # 41 passed
+cd ../../frontend && npm install && npm run build                    # Next.js build
 ```
 
 For the full live reproduction walkthrough (deploy, run grader, run skill, demo txs), see `docs/TECHNICAL.md` §Reproduction steps.
@@ -50,14 +51,18 @@ For the full live reproduction walkthrough (deploy, run grader, run skill, demo 
 - [docs/api.md](./docs/api.md) — grader API contract
 - [docs/addresses.md](./docs/addresses.md) — deployed addresses (BSC testnet)
 - [bsc.address](./bsc.address) — judge-readable deployment summary
-- [scripts/demo.sh](./scripts/demo.sh) — narrated cold-start demo dry-run
+- [backend/scripts/demo.sh](./backend/scripts/demo.sh) — narrated cold-start demo dry-run
 - [CLAUDE_BACKEND.md](./CLAUDE_BACKEND.md) — backend engineer playbook
 - [CLAUDE_FRONTEND.md](./CLAUDE_FRONTEND.md) — frontend engineer playbook
+- [frontend/README.md](./frontend/README.md) — Next.js 14 + wagmi + shadcn frontend
+- [LEGACY.md](./LEGACY.md) — legacy UI iteration notes
 
 ## Repo layout
 
-- `contracts/` — Foundry project: `JobFactory.sol`, `GraderEvaluator.sol`, tests, deploy script.
-- `grader/` — FastAPI service: pytest generator, Docker sandbox, verdict signer, x402-gated hint route.
-- `skill/` — TypeScript CryptoClaw skill: job watcher, solver, x402 pay flow.
+- `backend/` — consolidated backend workspaces.
+  - `backend/contracts/` — Foundry project: `JobFactory.sol`, `GraderEvaluator.sol`, tests, deploy script.
+  - `backend/grader/` — FastAPI service: pytest generator, Docker sandbox, verdict signer, x402-gated hint route.
+  - `backend/skill/` — TypeScript CryptoClaw skill: job watcher, solver, x402 pay flow.
+  - `backend/scripts/` — demo helper scripts.
+- `frontend/` — Next.js 14 app (wagmi + shadcn).
 - `docs/` — technical doc, audits, API contract, addresses, dev setup.
-- `scripts/` — demo helper scripts.

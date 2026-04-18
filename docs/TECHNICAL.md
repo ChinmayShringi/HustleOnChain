@@ -49,9 +49,10 @@ JOB CONTRACT -> releases escrow to agent on complete()
 
 Repo slice owned here:
 
-- `contracts/` — Foundry project. `JobFactory.sol`, `GraderEvaluator.sol`, `interfaces/IERC8183.sol`. Tests in `contracts/test/` including adversarial suite.
-- `grader/` — FastAPI service. `pytest_gen.py` (Claude-generated tests), `sandbox.py` (Docker runner), `evaluator_signer.py` (EIP-191 verdict signer), `x402_hint.py` (one x402-gated endpoint), `status.py`, `deliverables.py`, `tasks_store.py`.
-- `skill/` — TypeScript CryptoClaw skill. `job_watcher.ts`, `solver.ts`, `x402_paid_call.ts`, `grader_client.ts`, `status_server.ts`.
+- `backend/contracts/` — Foundry project. `JobFactory.sol`, `GraderEvaluator.sol`, `interfaces/IERC8183.sol`. Tests in `backend/contracts/test/` including adversarial suite.
+- `backend/grader/` — FastAPI service. `pytest_gen.py` (Claude-generated tests), `sandbox.py` (Docker runner), `evaluator_signer.py` (EIP-191 verdict signer), `x402_hint.py` (one x402-gated endpoint), `status.py`, `deliverables.py`, `tasks_store.py`.
+- `backend/skill/` — TypeScript CryptoClaw skill. `job_watcher.ts`, `solver.ts`, `x402_paid_call.ts`, `grader_client.ts`, `status_server.ts`.
+- `frontend/` — Next.js 14 app (wagmi + shadcn).
 - `docs/` — API contract, deployed addresses, audits per phase.
 
 ## 3. Onchain proof
@@ -81,7 +82,7 @@ git submodule update --init --recursive
 ### Contracts
 
 ```bash
-cd contracts
+cd backend/contracts
 forge test
 ```
 
@@ -90,48 +91,56 @@ Expected: **17 tests passed** (JobFactory 6, GraderEvaluator 4, Adversarial 7).
 ### Grader service
 
 ```bash
-cd grader
+cd backend/grader
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-pytest tests/ --ignore=tests/test_sandbox.py   # non-docker suite: 45 passed, 5 skipped
+pytest tests/ --ignore=tests/test_sandbox.py   # non-docker suite: 46 passed, 5 skipped
 # full suite, requires Docker + prebuilt sandbox image:
 docker build -t agentwork-sandbox -f Dockerfile.sandbox .
-pytest tests/                                   # 52 passed (45 + 7 sandbox), 5 skipped without docker
+pytest tests/                                   # 53 passed (46 + 7 sandbox), 5 skipped without docker
 ```
 
-Expected: **52 tests passed** end-to-end on a machine with Docker available.
+Expected: **53 tests passed** end-to-end on a machine with Docker available.
 
 ### Skill
 
 ```bash
-cd skill
+cd backend/skill
 npm install
 npm test
 ```
 
-Expected: **37 tests passed** across 7 files, plus a clean `npm run build` to `dist/index.js`.
+Expected: **41 tests passed** across 7 files, plus a clean `npm run build` to `dist/index.js`.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run build
+```
 
 ### Optional live deploy + run
 
-Populate `contracts/.env` with `DEPLOYER_PRIVATE_KEY` and `GRADER_SIGNER_ADDRESS`, then:
+Populate `backend/contracts/.env` with `DEPLOYER_PRIVATE_KEY` and `GRADER_SIGNER_ADDRESS`, then:
 
 ```bash
-cd contracts
+cd backend/contracts
 forge script script/Deploy.s.sol --rpc-url https://data-seed-prebsc-1-s1.binance.org:8545 --broadcast
 ```
 
-Populate `grader/.env` with `EVALUATOR_PRIVATE_KEY`, `JOB_FACTORY_ADDRESS`, `GRADER_EVALUATOR_ADDRESS`, `ANTHROPIC_API_KEY`, `RPC_URL`, and start the grader:
+Populate `backend/grader/.env` with `EVALUATOR_PRIVATE_KEY`, `JOB_FACTORY_ADDRESS`, `GRADER_EVALUATOR_ADDRESS`, `ANTHROPIC_API_KEY`, `RPC_URL`, and start the grader:
 
 ```bash
-cd grader
+cd backend/grader
 .venv/bin/uvicorn app.main:app --port 8000
 ```
 
-Populate `skill/.env` with `AGENT_PRIVATE_KEY`, `JOB_FACTORY_ADDRESS`, `GRADER_URL`, `RPC_URL`, and start the skill:
+Populate `backend/skill/.env` with `AGENT_PRIVATE_KEY`, `JOB_FACTORY_ADDRESS`, `GRADER_URL`, `RPC_URL`, and start the skill:
 
 ```bash
-cd skill
+cd backend/skill
 npm run build
 node dist/index.js
 ```

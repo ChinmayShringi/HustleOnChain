@@ -2,7 +2,7 @@
 
 Network: BSC Testnet (chainId 97)
 
-JobFactory:         TBD (run scripts/Deploy.s.sol)
+JobFactory:         TBD (run backend/contracts/script/Deploy.s.sol)
 GraderEvaluator:    TBD
 ERC-8183 reference: 0x3464e64dD53bC093c53050cE5114062765e9F1b6  (BNBAgent SDK, for interoperability)
 
@@ -14,7 +14,7 @@ Demo tx hashes (to populate after cold-start demo):
 - x402 payment:    TBD
 
 To populate:
-  cd contracts
+  cd backend/contracts
   forge script script/Deploy.s.sol --rpc-url https://data-seed-prebsc-1-s1.binance.org:8545 --broadcast
 
 See docs/TECHNICAL.md for full architecture and reproduction steps.

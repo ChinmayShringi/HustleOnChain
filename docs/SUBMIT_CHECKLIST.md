@@ -6,14 +6,14 @@ Work through these steps in order before hitting Submit on DoraHacks.
 
 ## Deploy & record
 
-- [ ] Fund the BSC testnet deployer wallet (address from `contracts/.env`) with tBNB from a BSC testnet faucet.
+- [ ] Fund the BSC testnet deployer wallet (address from `backend/contracts/.env`) with tBNB from a BSC testnet faucet.
 - [ ] Set `DEPLOYER_PRIVATE_KEY` and `GRADER_SIGNER_ADDRESS` in a local env file (not committed).
-- [ ] `cd contracts && forge script script/Deploy.s.sol --rpc-url $BSC_RPC_URL --broadcast --verify` (note `--verify` may need a BscScan API key via `ETHERSCAN_API_KEY`).
+- [ ] `cd backend/contracts && forge script script/Deploy.s.sol --rpc-url $BSC_RPC_URL --broadcast --verify` (note `--verify` may need a BscScan API key via `ETHERSCAN_API_KEY`).
 - [ ] Record `JobFactory` and `GraderEvaluator` addresses in `bsc.address`.
 
 ## Bring up off-chain services
 
-- [ ] Start grader with real env (Anthropic key + testnet RPC) and build sandbox image: `docker build -t agentwork-sandbox -f grader/Dockerfile.sandbox grader/`.
+- [ ] Start grader with real env (Anthropic key + testnet RPC) and build sandbox image: `docker build -t agentwork-sandbox -f backend/grader/Dockerfile.sandbox backend/grader/`.
 - [ ] Start skill with real env (agent private key funded with some tUSDT + a tiny bit of tBNB for gas).
 
 ## Coordinate end-to-end flow
