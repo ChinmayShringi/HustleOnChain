@@ -3,30 +3,36 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { Landmark } from 'lucide-react'
 
 export function FloatingHeader() {
   return (
     <motion.header 
-      initial={{ y: -20, opacity: 0 }}
+      initial={{ y: -10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4"
+      className="fixed top-0 left-0 w-full z-50 bg-background border-b border-border"
     >
-      <div className="glass-panel rounded-2xl px-6 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-xs">H</span>
+      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 bg-foreground flex items-center justify-center">
+            <Landmark className="w-5 h-5 text-background" />
           </div>
-          <span className="font-heading font-bold text-lg tracking-tight">HustleOnChain</span>
+          <span className="text-xl font-bold tracking-tighter uppercase font-mono">DB Exchange</span>
         </Link>
-        
+
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/explore" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Explore</Link>
-          <Link href="/create" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Create</Link>
-          <Link href="/docs" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Docs</Link>
+          <Link href="/create" className="text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors">
+            Issue Tranche
+          </Link>
+          <div className="w-px h-4 bg-border" />
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">BNB Testnet Active</span>
+          </div>
         </nav>
 
         <div className="flex items-center gap-4">
-          <ConnectButton accountStatus="avatar" chainStatus="icon" showBalance={false} />
+          <ConnectButton />
         </div>
       </div>
     </motion.header>

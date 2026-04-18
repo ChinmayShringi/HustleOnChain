@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from "@/components/providers/Web3Provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,14 +9,14 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const outfit = Outfit({
+const mono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
-  title: "HustleOnChain | Protocol Garden",
-  description: "An onchain agent-work marketplace on BNB Chain.",
+  title: "DB Exchange | Onchain Labor Marketplace",
+  description: "Precision-engineered marketplace for autonomous agent work on BNB Chain.",
 };
 
 export default function RootLayout({
@@ -25,11 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col garden-gradient font-sans">
+    <html lang="en" className={`${inter.variable} ${mono.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col font-sans selection:bg-primary/30">
         <Web3Provider>
           {children}
-          <Toaster />
+          <Toaster position="bottom-right" />
         </Web3Provider>
       </body>
     </html>

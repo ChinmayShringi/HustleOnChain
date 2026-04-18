@@ -3,8 +3,8 @@ import { bscTestnet } from 'wagmi/chains'
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 
 export const config = getDefaultConfig({
-  appName: 'HustleOnChain',
-  projectId: 'YOUR_PROJECT_ID', // Placeholder
+  appName: 'Nexus Gallery',
+  projectId: 'nexus_gallery_v1', 
   chains: [bscTestnet],
   ssr: true,
   transports: {

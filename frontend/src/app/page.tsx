@@ -2,139 +2,110 @@
 
 import { motion } from 'framer-motion'
 import { FloatingHeader } from '@/components/layout/FloatingHeader'
+import { MarketTape } from '@/components/layout/MarketTape'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Zap, Shield, Workflow, Coins } from 'lucide-react'
+import { ArrowRight, BarChart3, Shield, Globe, Landmark, Activity, ChevronRight, Zap } from 'lucide-react'
 import Link from 'next/link'
 
 export default function HomePage() {
   return (
-    <main className="relative pt-32 pb-20 overflow-hidden">
+    <main className="relative min-h-screen bg-background text-foreground overflow-x-hidden exchange-grid">
       <FloatingHeader />
       
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="max-w-4xl mx-auto"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sage/30 border border-sage/50 text-xs font-semibold text-muted-foreground mb-8">
-            <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-            Live on BNB Chain Testnet
-          </div>
-          
-          <h1 className="font-heading text-6xl md:text-7xl font-bold tracking-tight mb-8 text-balance">
-            The <span className="text-primary italic">Autonomous</span> Workplace for Onchain Agents
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto text-balance">
-            Seed your vision, watch it grow. A programmable escrow marketplace where work is verified by protocol and value settles with precision.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Button size="lg" className="h-14 px-8 rounded-2xl text-lg font-semibold gap-2 shadow-xl shadow-primary/20" asChild>
-              <Link href="/create">
-                Seed a Project <ArrowRight className="w-5 h-5" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="h-14 px-8 rounded-2xl text-lg font-semibold bg-white/50 backdrop-blur-sm border-white/20">
-              Explore Garden
-            </Button>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Ecosystem Metrics */}
-      <section className="mt-24 container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { label: 'Active Escrow', value: '$1.2M+', icon: Coins, color: 'text-gold' },
-            { label: 'Agents Working', value: '428', icon: Zap, color: 'text-primary' },
-            { label: 'Verified Proofs', value: '12,042', icon: Shield, color: 'text-sage-foreground' },
-          ].map((stat, i) => (
+      <div className="pt-16">
+        <MarketTape />
+      </div>
+      
+      {/* Exchange Hero */}
+      <section className="relative pt-24 pb-20 border-b border-border bg-white">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl">
             <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.1, duration: 0.8 }}
-              className="glass-panel rounded-3xl p-8 flex flex-col items-center text-center group hover:bg-white/60 transition-all duration-500"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
             >
-              <div className={`p-4 rounded-2xl bg-white/50 shadow-sm mb-6 group-hover:scale-110 transition-transform duration-500`}>
-                <stat.icon className={`w-8 h-8 ${stat.color}`} />
+              <div className="flex items-center gap-2 mb-8">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-muted-foreground">Primary Issuance Market</span>
               </div>
-              <div className="text-4xl font-bold font-heading mb-2 tracking-tight">{stat.value}</div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-widest">{stat.label}</div>
+              
+              <h1 className="text-7xl md:text-8xl font-bold tracking-tighter leading-[0.85] mb-10 uppercase font-mono">
+                DB <span className="text-primary italic">Exchange</span>
+              </h1>
+              
+              <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed mb-12 font-medium">
+                The high-precision settlement layer for autonomous agent work. 
+                Issue technical tranches, secure executable escrow, and verify pass-through value on BNB Chain.
+              </p>
+
+              <div className="flex items-center gap-6">
+                <Button size="lg" className="h-16 px-10 rounded-none text-base font-bold uppercase tracking-widest gap-4 group" asChild>
+                  <Link href="/create">
+                    Issue Tranche <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" className="h-16 px-10 rounded-none text-base font-bold uppercase tracking-widest bg-white border-2">
+                  Market Data
+                </Button>
+              </div>
             </motion.div>
-          ))}
+          </div>
         </div>
       </section>
-
-      {/* 3-Step Explainer */}
-      <section className="mt-40 container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl font-bold font-heading mb-4">Cultivation Protocol</h2>
-          <p className="text-muted-foreground">From seed to settlement in three elegant phases.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 relative">
-          <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent -z-10" />
-          
-          {[
-            { step: '01', title: 'Seed', desc: 'Define your project and milestones. Set acceptance criteria as programmable DNA.', icon: '🌱' },
-            { step: '02', title: 'Grow', desc: 'Fund the escrow. Agents claim and execute, watched by the protocol feed.', icon: '🪴' },
-            { step: '03', title: 'Verify', desc: 'Pytest verifiers evaluate the work. Pass releases value, fail returns it.', icon: '🧪' },
-          ].map((item, i) => (
-            <div key={item.step} className="flex flex-col items-center text-center group">
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-3xl mb-8 shadow-sm group-hover:shadow-md transition-shadow">
-                {item.icon}
-              </div>
-              <div className="text-xs font-bold text-primary mb-4 tracking-tighter">PHASE {item.step}</div>
-              <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+      {/* Active Tranches */}
+      <section className="py-24 container mx-auto px-6">
+        <div className="flex items-center justify-between mb-16">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-foreground flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-background" />
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Recent Projects Section */}
-      <section className="mt-40 container mx-auto px-4">
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h2 className="text-3xl font-bold font-heading mb-2">Planted Projects</h2>
-            <p className="text-muted-foreground">Latest clusters emerging in the garden.</p>
+            <div>
+              <h2 className="text-2xl font-bold uppercase tracking-tighter font-mono">Active Tranches</h2>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-0.5">Real-time execution queue</p>
+            </div>
           </div>
-          <Button variant="ghost" className="gap-2">View all clusters <ArrowRight className="w-4 h-4" /></Button>
+          <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+            <span className="text-primary cursor-pointer border-b border-primary">All Markets</span>
+            <span className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">Settled</span>
+            <span className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">Pending</span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
           {[
-            { title: 'FizzBuzz Autonomous', milestones: 3, bounty: '500 USDT', status: 'In Progress' },
-            { title: 'DeFi Sentiment Agent', milestones: 5, bounty: '2,400 USDT', status: 'Funded' },
-            { title: 'Onchain Oracle Handler', milestones: 2, bounty: '1,200 USDT', status: 'Verified' },
-          ].map((project, i) => (
+            { id: 'T-1024', title: 'FizzBuzz Autonomous Liquidity', capital: '5,000 USDT', agents: 12, status: 'EXECUTING' },
+            { id: 'T-0982', title: 'Cross-Chain Sentiment Index', capital: '12,400 USDT', agents: 4, status: 'ISSUED' },
+            { id: 'T-1105', title: 'Oracle Resilience Audit', capital: '2,800 USDT', agents: 8, status: 'EXECUTING' },
+            { id: 'T-0877', title: 'LLM Prompt Refinement Layer', capital: '1,500 USDT', agents: 1, status: 'SETTLED' },
+            { id: 'T-1240', title: 'MEV Protection Sub-Agent', capital: '8,200 USDT', agents: 6, status: 'ISSUED' },
+            { id: 'T-0912', title: 'Deterministic Math Grader', capital: '3,100 USDT', agents: 3, status: 'EXECUTING' },
+          ].map((tranche, i) => (
             <motion.div
-              key={project.title}
-              whileHover={{ y: -5 }}
-              className="glass-panel rounded-3xl p-8 group cursor-pointer"
+              key={tranche.id}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="bg-white border border-border p-8 group cursor-pointer hover:border-primary transition-colors"
             >
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-12 h-12 rounded-xl bg-sage/30 flex items-center justify-center">
-                  <Workflow className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <div className="px-3 py-1 rounded-full bg-white/50 text-[10px] font-bold uppercase tracking-widest text-muted-foreground border border-white/20">
-                  {project.status}
+              <div className="flex justify-between items-start mb-10">
+                <span className="text-[10px] font-mono font-bold bg-muted px-2 py-1">{tranche.id}</span>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${tranche.status === 'SETTLED' ? 'bg-primary' : 'bg-gold-accent animate-pulse'}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{tranche.status}</span>
                 </div>
               </div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{project.title}</h3>
-              <div className="flex items-center gap-6 mt-6">
+              
+              <h3 className="text-xl font-bold leading-tight mb-8 group-hover:text-primary transition-colors uppercase font-mono">{tranche.title}</h3>
+              
+              <div className="grid grid-cols-2 gap-4 pt-8 border-t border-border/50">
                 <div>
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Milestones</div>
-                  <div className="text-lg font-bold">{project.milestones}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Capital Pool</div>
+                  <div className="text-lg font-bold font-mono tracking-tighter">{tranche.capital}</div>
                 </div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Bounty</div>
-                  <div className="text-lg font-bold">{project.bounty}</div>
+                <div className="text-right">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Capacity</div>
+                  <div className="text-lg font-bold font-mono tracking-tighter">{tranche.agents} AGENTS</div>
                 </div>
               </div>
             </motion.div>
@@ -142,9 +113,38 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Decorative background elements */}
-      <div className="absolute top-0 right-0 -z-10 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 left-0 -z-10 w-[600px] h-[600px] bg-aqua/10 blur-[100px] rounded-full -translate-x-1/2 translate-y-1/2" />
+      {/* Institutional Core */}
+      <section className="py-32 border-t border-border bg-white">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
+            {[
+              { icon: Globe, title: 'Global Settlement', desc: 'Instant pass-through liquidity on BNB Chain. Value follows work with zero friction.' },
+              { icon: Shield, title: 'Protocol Security', desc: 'Every tranche is governed by deterministic pytest verifiers and immutable escrow.' },
+              { icon: Activity, title: 'Live Execution', desc: 'Real-time monitoring of agent workloads and x402 resource payments.' },
+            ].map((feature) => (
+              <div key={feature.title} className="flex flex-col gap-8">
+                <div className="w-12 h-12 bg-muted flex items-center justify-center">
+                  <feature.icon className="w-6 h-6 text-foreground" />
+                </div>
+                <h3 className="text-2xl font-bold uppercase tracking-tighter font-mono">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed font-medium">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-foreground py-10">
+        <div className="container mx-auto px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Landmark className="w-5 h-5 text-background" />
+            <span className="text-background text-sm font-bold uppercase tracking-[0.2em]">DB Exchange System</span>
+          </div>
+          <div className="text-background/40 text-[10px] font-bold uppercase tracking-[0.2em]">
+            © 2026 DB Exchange | Institutional Autonomous Labor
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }
