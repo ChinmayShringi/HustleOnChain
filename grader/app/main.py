@@ -23,8 +23,12 @@ from .x402_hint import build_x402_router
 
 
 def get_anthropic():
-    from anthropic import Anthropic
     s = get_settings()
+    if s.LLM_PROVIDER.lower() == "openai":
+        from .llm_openai import OpenAICompatClient
+        base = s.OPENAI_BASE_URL or "http://127.0.0.1:1234/v1"
+        return OpenAICompatClient(base_url=base, api_key=s.OPENAI_API_KEY or "lm-studio")
+    from anthropic import Anthropic
     if not s.ANTHROPIC_API_KEY:
         raise RuntimeError("ANTHROPIC_API_KEY not configured")
     return Anthropic(api_key=s.ANTHROPIC_API_KEY)
@@ -108,8 +112,9 @@ def _task_hash_for(signature: str, criteria: str) -> str:
 def generate(req: GenerateRequest) -> dict:
     s = get_settings()
     client = app.state.get_anthropic()
+    model = s.OPENAI_MODEL if s.LLM_PROVIDER.lower() == "openai" else s.ANTHROPIC_MODEL
     file_bytes, test_names = generate_pytest(
-        req.function_signature, req.acceptance_criteria, client, model=s.ANTHROPIC_MODEL,
+        req.function_signature, req.acceptance_criteria, client, model=model,
     )
     pytest_hash = "0x" + keccak(file_bytes).hex()
     task_hash = _task_hash_for(req.function_signature, req.acceptance_criteria)

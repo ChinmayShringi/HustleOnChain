@@ -14,6 +14,10 @@ class Settings(BaseSettings):
 
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-opus-4-7"
+    LLM_PROVIDER: str = "anthropic"
+    OPENAI_BASE_URL: str = ""
+    OPENAI_API_KEY: str = "lm-studio"
+    OPENAI_MODEL: str = "qwen2.5-coder-7b-instruct-mlx"
     EVALUATOR_PRIVATE_KEY: str = ""
     DEPLOYER_PRIVATE_KEY: str = ""
     BSC_RPC_URL: str = "https://data-seed-prebsc-1-s1.binance.org:8545/"

@@ -14,7 +14,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { JOB_FACTORY_ABI } from "./abi.js";
 import type { AgentEnv } from "./env.js";
 import { GraderClient } from "./grader_client.js";
-import { solveTask, type AnthropicLike } from "./solver.js";
+import { solveTask, type AnthropicLike, getLlmClient, llmAsAnthropicLike } from "./solver.js";
 import { payForHint } from "./x402_paid_call.js";
 import { updateStatus } from "./status_server.js";
 
@@ -50,7 +50,8 @@ export function buildDeps(env: AgentEnv): WatcherDeps {
   const publicClient = createPublicClient({ chain: bscTestnet, transport });
   const walletClient = createWalletClient({ account, chain: bscTestnet, transport });
   const grader = new GraderClient({ baseUrl: env.GRADER_URL, hintUrl: env.X402_HINT_URL });
-  const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }) as unknown as AnthropicLike;
+  const llm = getLlmClient(env, (apiKey) => new Anthropic({ apiKey }) as unknown as AnthropicLike);
+  const anthropic = llmAsAnthropicLike(llm);
   return {
     env,
     publicClient: publicClient as PublicClient,
@@ -106,8 +107,12 @@ export async function handleJob(deps: WatcherDeps, jobId: bigint): Promise<Handl
 
   updateStatus("solving", { job_id: jobId.toString() });
   await grader.pushStatus({ agent_address: agentAddress, state: "solving", job_id: jobId.toString() });
+  const solverModel =
+    (env.LLM_PROVIDER ?? "anthropic").toLowerCase() === "openai"
+      ? env.OPENAI_MODEL
+      : env.ANTHROPIC_MODEL;
   const solutionBytes = await solveTask(task.function_signature, task.acceptance_criteria, anthropic, {
-    model: env.ANTHROPIC_MODEL,
+    model: solverModel,
   });
 
   updateStatus("paying_x402", { job_id: jobId.toString() });

@@ -9,6 +9,90 @@ export interface AnthropicLike {
   };
 }
 
+export interface LlmClient {
+  complete(args: { system: string; user: string; maxTokens: number; model: string }): Promise<string>;
+}
+
+export class AnthropicLlm implements LlmClient {
+  constructor(private readonly client: AnthropicLike) {}
+  async complete(args: { system: string; user: string; maxTokens: number; model: string }): Promise<string> {
+    const resp = await this.client.messages.create({
+      model: args.model,
+      max_tokens: args.maxTokens,
+      system: args.system,
+      messages: [{ role: "user", content: args.user }],
+    });
+    return resp.content.map((b) => (b.type === "text" ? b.text ?? "" : "")).join("");
+  }
+}
+
+export class OpenAiCompatLlm implements LlmClient {
+  constructor(private readonly baseUrl: string, private readonly apiKey: string) {}
+  async complete(args: { system: string; user: string; maxTokens: number; model: string }): Promise<string> {
+    const url = `${this.baseUrl.replace(/\/$/, "")}/chat/completions`;
+    const body = {
+      model: args.model,
+      max_tokens: args.maxTokens,
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: args.system },
+        { role: "user", content: args.user },
+      ],
+    };
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      throw new Error(`openai-compat ${resp.status}: ${text.slice(0, 500)}`);
+    }
+    const data = (await resp.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const content = data.choices?.[0]?.message?.content ?? "";
+    return typeof content === "string" ? content : String(content);
+  }
+}
+
+// Adapter: wraps LlmClient as AnthropicLike so solveTask can consume either.
+export function llmAsAnthropicLike(llm: LlmClient): AnthropicLike {
+  return {
+    messages: {
+      create: async (args) => {
+        const userMsg = args.messages.find((m) => m.role === "user");
+        const text = await llm.complete({
+          system: args.system,
+          user: typeof userMsg?.content === "string" ? userMsg.content : "",
+          maxTokens: args.max_tokens,
+          model: args.model,
+        });
+        return { content: [{ type: "text", text }] };
+      },
+    },
+  };
+}
+
+export interface EnvForLlm {
+  LLM_PROVIDER: string;
+  ANTHROPIC_API_KEY: string;
+  OPENAI_BASE_URL: string;
+  OPENAI_API_KEY: string;
+}
+
+export function getLlmClient(
+  env: EnvForLlm,
+  makeAnthropic: (apiKey: string) => AnthropicLike,
+): LlmClient {
+  if (env.LLM_PROVIDER.toLowerCase() === "openai") {
+    const base = env.OPENAI_BASE_URL || "http://127.0.0.1:1234/v1";
+    return new OpenAiCompatLlm(base, env.OPENAI_API_KEY || "lm-studio");
+  }
+  return new AnthropicLlm(makeAnthropic(env.ANTHROPIC_API_KEY));
+}
+
 const SYSTEM_PROMPT =
   "You write deterministic Python solutions for function specifications. " +
   "Output only the Python source file with the function implemented. " +

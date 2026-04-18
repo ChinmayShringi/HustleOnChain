@@ -14,6 +14,10 @@ export interface AgentEnv {
   STATUS_PORT: number;
   X402_HINT_URL: string;
   X402_PRICE_WEI: bigint;
+  LLM_PROVIDER: string;
+  OPENAI_BASE_URL: string;
+  OPENAI_API_KEY: string;
+  OPENAI_MODEL: string;
 }
 
 const DEFAULTS = {
@@ -24,17 +28,21 @@ const DEFAULTS = {
   X402_PRICE_WEI: "10000000000000000",
 };
 
-const REQUIRED_KEYS = [
+const BASE_REQUIRED_KEYS = [
   "AGENT_PRIVATE_KEY",
   "JOB_FACTORY_ADDRESS",
   "GRADER_EVALUATOR_ADDRESS",
   "USDT_ADDRESS",
-  "ANTHROPIC_API_KEY",
 ] as const;
 
 export function getEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv {
+  const provider = (source.LLM_PROVIDER?.trim() || "anthropic").toLowerCase();
+  const required: readonly string[] =
+    provider === "openai"
+      ? BASE_REQUIRED_KEYS
+      : [...BASE_REQUIRED_KEYS, "ANTHROPIC_API_KEY"];
   const missing: string[] = [];
-  for (const key of REQUIRED_KEYS) {
+  for (const key of required) {
     if (!source[key] || source[key]!.trim().length === 0) {
       missing.push(key);
     }
@@ -60,10 +68,14 @@ export function getEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv {
     JOB_FACTORY_ADDRESS: source.JOB_FACTORY_ADDRESS!.trim() as `0x${string}`,
     GRADER_EVALUATOR_ADDRESS: source.GRADER_EVALUATOR_ADDRESS!.trim() as `0x${string}`,
     USDT_ADDRESS: source.USDT_ADDRESS!.trim() as `0x${string}`,
-    ANTHROPIC_API_KEY: source.ANTHROPIC_API_KEY!.trim(),
+    ANTHROPIC_API_KEY: (source.ANTHROPIC_API_KEY ?? "").trim(),
     ANTHROPIC_MODEL: anthropicModel,
     STATUS_PORT: statusPort,
     X402_HINT_URL: hintUrl,
     X402_PRICE_WEI: priceWei,
+    LLM_PROVIDER: provider,
+    OPENAI_BASE_URL: (source.OPENAI_BASE_URL ?? "").trim(),
+    OPENAI_API_KEY: (source.OPENAI_API_KEY ?? "lm-studio").trim() || "lm-studio",
+    OPENAI_MODEL: (source.OPENAI_MODEL ?? "qwen2.5-coder-7b-instruct-mlx").trim() || "qwen2.5-coder-7b-instruct-mlx",
   };
 }
