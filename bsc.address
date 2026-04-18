@@ -1,3 +1,20 @@
-# BSC testnet deployed contract addresses. Filled in at end of Phase 1.
-# Format: one "LABEL=0x..." per line.
-# TBD
+# AgentWork — BSC deployment addresses
+
+Network: BSC Testnet (chainId 97)
+
+JobFactory:         TBD (run scripts/Deploy.s.sol)
+GraderEvaluator:    TBD
+ERC-8183 reference: 0x3464e64dD53bC093c53050cE5114062765e9F1b6  (BNBAgent SDK, for interoperability)
+
+Demo tx hashes (to populate after cold-start demo):
+- createJob (M1):  TBD
+- fund (M1):       TBD
+- submit (M1):     TBD
+- submitVerdict (M1 pass): TBD
+- x402 payment:    TBD
+
+To populate:
+  cd contracts
+  forge script script/Deploy.s.sol --rpc-url https://data-seed-prebsc-1-s1.binance.org:8545 --broadcast
+
+See docs/TECHNICAL.md for full architecture and reproduction steps.
