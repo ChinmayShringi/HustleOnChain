@@ -13,3 +13,12 @@ BNB Smart Chain testnet (chain id 97). Values marked `TBD` are filled in during 
 ## Phase 1 demo txs
 
 Populated after the end-of-Phase-1 cast walkthrough.
+
+## Local test deployment
+
+Phase 1 builder status: `contracts/` artifacts are built and all Foundry tests pass
+locally (`forge test -vv` -> 10/10 passing). Nothing has been broadcast to BSC
+testnet yet. `script/Deploy.s.sol` is ready and expects env vars
+`DEPLOYER_PRIVATE_KEY` and `GRADER_SIGNER_ADDRESS`. Run
+`forge script script/Deploy.s.sol --rpc-url <bsc-testnet> --broadcast` once the
+deployer wallet is funded to populate the TBD rows above.
