@@ -66,10 +66,12 @@ def test_non_python_text_raises():
         _validate("this is not python ::: @")
 
 
-def test_missing_pytest_import_raises():
+def test_missing_pytest_import_accepted():
+    # Pytest discovers tests by `test_` prefix; `import pytest` is not
+    # required. The validator must accept files without it.
     body = "def test_a():\n    assert True\n\ndef test_b():\n    assert True\n\ndef test_c():\n    assert True\n"
-    with pytest.raises(ValueError, match="missing pytest import"):
-        _validate(body)
+    names = _validate(body)
+    assert set(names) >= {"test_a", "test_b", "test_c"}
 
 
 def test_prompt_injection_string_literal_accepted():

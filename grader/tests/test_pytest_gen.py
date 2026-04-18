@@ -96,3 +96,28 @@ def test_retry_then_succeed():
     file_bytes, names = generate_pytest("sig", "crit", client)
     assert len(names) >= 3
     assert client.messages.calls == 2
+
+
+VALID_PYTEST_NO_IMPORT = """def fizzbuzz(n):
+    return []
+
+def test_empty():
+    assert fizzbuzz(0) == []
+
+def test_basic():
+    assert isinstance(fizzbuzz(1), list)
+
+def test_three():
+    assert fizzbuzz(3) is not None
+"""
+
+
+def test_accepts_pytest_file_without_import_pytest():
+    # Pytest discovers tests by the `test_` prefix; `import pytest` is not
+    # required for a valid pytest file. The validator must accept this.
+    client = _MockClient([VALID_PYTEST_NO_IMPORT])
+    file_bytes, names = generate_pytest("sig", "crit", client)
+    assert b"import pytest" not in file_bytes
+    assert len(names) >= 3
+    assert "test_empty" in names
+    assert client.messages.calls == 1

@@ -58,8 +58,22 @@ const isMain = (() => {
 
 if (isMain) {
   const parsed = parseArgs(process.argv);
-  agentworkRun(parsed).catch((err) => {
-    console.error(`[agent] fatal: ${err instanceof Error ? err.message : String(err)}`);
-    process.exit(1);
-  });
+  if (parsed.mode === "once") {
+    // `once` must complete the job lifecycle and exit cleanly. The status
+    // server keeps the event loop alive otherwise, so we explicitly exit.
+    (async () => {
+      try {
+        await agentworkRun(parsed);
+        process.exit(0);
+      } catch (err) {
+        console.error(`[agent] fatal: ${err instanceof Error ? err.message : String(err)}`);
+        process.exit(1);
+      }
+    })();
+  } else {
+    agentworkRun(parsed).catch((err) => {
+      console.error(`[agent] fatal: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    });
+  }
 }

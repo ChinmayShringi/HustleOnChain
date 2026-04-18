@@ -61,13 +61,11 @@ def _check_image_or_warn(docker: str, image: str) -> bool:
 def run_sandbox(solution_bytes: bytes, pytest_bytes: bytes, timeout_s: int = 30) -> Dict:
     docker = shutil.which("docker")
     if not docker:
-        return {
-            "passed": False,
-            "stdout": "",
-            "stderr": "docker binary not found in PATH",
-            "failed_tests": [],
-            "timed_out": True,
-        }
+        raise SandboxImageMissing(
+            "docker binary not found in PATH. The sandbox must always run via "
+            "Docker with --network=none to safely execute untrusted agent code. "
+            "Start Docker, then build the sandbox image: " + _BUILD_HINT
+        )
 
     if not _check_image_or_warn(docker, _DEFAULT_IMAGE):
         raise SandboxImageMissing(

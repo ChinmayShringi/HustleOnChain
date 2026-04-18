@@ -53,8 +53,9 @@ def _validate(text: str) -> list[str]:
         tree = ast.parse(text)
     except SyntaxError as e:
         raise ValueError(f"pytest output did not parse: {e}") from e
-    if "import pytest" not in text and "from pytest" not in text:
-        raise ValueError("pytest output missing pytest import")
+    # Note: we deliberately do NOT require `import pytest`. Pytest discovers
+    # files purely by the `test_` prefix on functions; a valid pytest file
+    # may omit the import entirely (e.g. when using only plain asserts).
     names: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
