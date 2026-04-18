@@ -3,7 +3,13 @@ uvicorn[standard]
 anthropic
 web3
 eth-account
+eth-utils
+eth-abi
 pytest
 httpx
 pydantic
+pydantic-settings
 python-multipart
+python-dotenv
+pytest-asyncio
+respx

@@ -1,0 +1,4 @@
+FROM python:3.11-slim
+RUN pip install --no-cache-dir pytest
+WORKDIR /tmp
+CMD ["pytest", "-q", "--tb=short", "test_solution.py"]
