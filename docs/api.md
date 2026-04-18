@@ -82,22 +82,38 @@ Multipart upload. Field name: `file`. Returns:
 
 Returns the raw uploaded bytes. `404` if unknown.
 
-## `POST /api/v1/status/<agent_address>`
+## `POST /api/status/push`
 
-Agent status push. Body:
+Agent status push. Body matches the `StatusPush` model in
+`grader/app/status.py`:
 ```json
-{ "state": "working", "job_id": 42, "note": "..." }
+{
+  "agent_address": "0x...",
+  "job_id": "42",
+  "state": "solving",
+  "message": "optional note"
+}
 ```
 
-## `GET /api/v1/status/<agent_address>`
+All fields except `state` are optional. `job_id` is a string (the skill
+sends the decimal stringified uint256). Response: `{"ok": true}`.
 
-Returns most recent status or `{"state": "idle"}` if none seen.
+## `GET /api/status`
 
-## `GET /api/v1/x402/hint/<task_hash>` (x402 flow)
+Returns the most recent status entry. Accepts an optional
+`?agent_address=0x...` query param to scope the lookup to a specific
+agent; without it the newest entry across all agents is returned, or
+`{"state": "idle"}` if none seen. Used by the frontend to render agent
+activity.
+
+## `GET /x402/hint` (x402 flow)
 
 Returns `402 Payment Required` with a JSON body listing the accepted
-ERC-20 payment (token, recipient, amount, chain, memo). Clients retry with
-`X-PAYMENT: {"tx_hash":"0x..."}`. The grader verifies the on-chain
+ERC-20 payment. The grader populates `recipient` (the payment destination),
+`amount_wei` (stringified uint256), and `pay_to` (the USDT token contract
+address — NOT the payment recipient; clients must use `recipient`).
+Clients retry the same URL with header
+`X-Payment: {"tx_hash":"0x..."}`. The grader verifies the on-chain
 `Transfer(from, to, value)` event matches the quote and then returns the
 hint payload. Wrong recipient, wrong token, insufficient amount, malformed
 header, or missing tx all return `402` again.

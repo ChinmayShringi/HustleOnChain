@@ -1,0 +1,13 @@
+{
+  "name": "agentwork",
+  "description": "Claim and fulfill ERC-8183 jobs on BSC with x402-gated tool access.",
+  "version": "0.1.0",
+  "entrypoint": "dist/index.js",
+  "tools": [
+    {
+      "name": "agentwork_run",
+      "description": "Start the AgentWork job watcher on the configured wallet.",
+      "parameters": {}
+    }
+  ]
+}

@@ -1,13 +1,15 @@
 {
   "name": "@agentwork/skill",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "AgentWork CryptoClaw skill: watches ERC-8183 jobs and solves them.",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "dev": "tsx src/index.ts run",
+    "once": "tsx src/index.ts once",
+    "start": "node dist/index.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
@@ -15,7 +17,9 @@
     "viem": "^2.21.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
   }
 }
