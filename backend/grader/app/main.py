@@ -17,9 +17,24 @@ from .config import get_settings
 from .deliverables import router as deliverables_router
 from .evaluator_signer import sign_verdict
 from .pytest_gen import generate_pytest
-from .sandbox import run_sandbox
+from .sandbox import SandboxImageMissing, run_sandbox
 from .status import router as status_router
 from .x402_hint import build_x402_router
+
+
+def _parse_cors_origins() -> list[str]:
+    """Read CORS_ALLOW_ORIGINS env (comma-separated).
+
+    When unset we default to the local Next.js dev origin so the existing
+    CORS contract test keeps passing. Production deployments (Railway) MUST
+    set CORS_ALLOW_ORIGINS explicitly to include their Vercel domain.
+    A literal value of "*" is honored for demo/wide-open use.
+    """
+    import os
+    raw = os.environ.get("CORS_ALLOW_ORIGINS", "").strip()
+    if not raw:
+        return ["http://localhost:3000"]
+    return [o.strip() for o in raw.split(",") if o.strip()]
 
 
 def get_anthropic():
@@ -57,11 +72,14 @@ def get_web3():
 
 app = FastAPI(title="AgentWork Grader", version="0.2.0")
 
+_cors_origins = _parse_cors_origins()
+# When allow_origins is ["*"], FastAPI requires allow_credentials=False.
+_allow_credentials = _cors_origins != ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=_allow_credentials,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -178,7 +196,18 @@ def submit(req: SubmitRequest) -> dict:
     if not pytest_bytes:
         raise HTTPException(status_code=404, detail="pytest file missing")
 
-    result = run_sandbox(solution_bytes, pytest_bytes)
+    try:
+        result = run_sandbox(solution_bytes, pytest_bytes)
+    except SandboxImageMissing:
+        # Railway-hosted frontend-serve mode: no Docker available.
+        # Return a clean 503 instead of crashing; CLI/local grader handles live grading.
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "sandbox_unavailable",
+                "hint": "Grader is in frontend-serve mode; use local grader for submit.",
+            },
+        )
     passed = bool(result["passed"])
 
     tx_hash = ""

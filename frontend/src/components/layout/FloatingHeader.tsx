@@ -1,6 +1,6 @@
 'use client'
 
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { ConnectButton } from '@/components/wiring/ConnectButton'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Landmark } from 'lucide-react'
