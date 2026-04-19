@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str = ""
     OPENAI_API_KEY: str = "lm-studio"
     OPENAI_MODEL: str = "qwen2.5-coder-7b-instruct-mlx"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     EVALUATOR_PRIVATE_KEY: str = ""
     DEPLOYER_PRIVATE_KEY: str = ""
     BSC_RPC_URL: str = "https://data-seed-prebsc-1-s1.binance.org:8545/"

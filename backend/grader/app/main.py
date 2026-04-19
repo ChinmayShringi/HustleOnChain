@@ -43,6 +43,11 @@ def get_anthropic():
         from .llm_openai import OpenAICompatClient
         base = s.OPENAI_BASE_URL or "http://127.0.0.1:1234/v1"
         return OpenAICompatClient(base_url=base, api_key=s.OPENAI_API_KEY or "lm-studio")
+    if s.LLM_PROVIDER.lower() == "gemini":
+        from .llm_gemini import GeminiClient
+        if not s.GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY not configured")
+        return GeminiClient(api_key=s.GEMINI_API_KEY)
     from anthropic import Anthropic
     if not s.ANTHROPIC_API_KEY:
         raise RuntimeError("ANTHROPIC_API_KEY not configured")
@@ -143,7 +148,13 @@ def _task_hash_for(signature: str, criteria: str) -> str:
 def generate(req: GenerateRequest) -> dict:
     s = get_settings()
     client = app.state.get_anthropic()
-    model = s.OPENAI_MODEL if s.LLM_PROVIDER.lower() == "openai" else s.ANTHROPIC_MODEL
+    provider = s.LLM_PROVIDER.lower()
+    if provider == "openai":
+        model = s.OPENAI_MODEL
+    elif provider == "gemini":
+        model = s.GEMINI_MODEL
+    else:
+        model = s.ANTHROPIC_MODEL
     file_bytes, test_names = generate_pytest(
         req.function_signature, req.acceptance_criteria, client, model=model,
     )
