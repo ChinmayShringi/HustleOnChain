@@ -19,11 +19,11 @@
 import React, { use, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { formatUnits } from 'viem'
-import { useAccount, useReadContract } from 'wagmi'
+import { useAccount, useChainId, useReadContract } from 'wagmi'
 import { CinematicBackground } from '@/components/layout/CinematicBackground'
 import { FloatingHeader } from '@/components/layout/FloatingHeader'
 import { Button } from '@/components/ui/button'
-import { bscTestnet } from '@/lib/contracts/addresses'
+import { BSC_TESTNET_CHAIN_ID, bscTestnet } from '@/lib/contracts/addresses'
 import { erc20Abi } from '@/lib/contracts/erc20.abi'
 import { JobState, jobStateLabel, isTerminalState } from '@/lib/contracts/jobState'
 import { useAgentStatus } from '@/lib/hooks/useAgentStatus'
@@ -69,7 +69,7 @@ function ProjectDetail({ jobId, rawId }: { jobId: bigint; rawId: string }) {
   const job = useJob(jobId)
   const hasJob = Boolean(job.data)
   const events = useJobEvents(jobId, job.data?.state)
-  const agent = useAgentStatus(job.data?.state)
+  const agent = useAgentStatus(job.data?.state, jobId)
   const x402 = useX402Payment({
     jobExists: hasJob,
     provider: job.data?.provider ?? null,
@@ -109,7 +109,11 @@ function ProjectDetail({ jobId, rawId }: { jobId: bigint; rawId: string }) {
         ) : job.error ? (
           <ErrorView error={job.error} />
         ) : !job.data ? (
-          <NotFoundView jobId={jobId} />
+          job.isPropagating ? (
+            <PropagatingView jobId={jobId} />
+          ) : (
+            <NotFoundView jobId={jobId} />
+          )
         ) : (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 mt-16">
@@ -508,6 +512,7 @@ function X402Card(props: {
 
 function ClientActions({ job }: { job: Job }) {
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
   const publicClient = usePublicClient()
   const claim = useClaimRefund()
 
@@ -515,6 +520,7 @@ function ClientActions({ job }: { job: Job }) {
     isConnected &&
     address?.toLowerCase() === job.client.toLowerCase()
   const canClaim = job.state === JobState.Expired && isClient
+  const onCorrectChain = chainId === BSC_TESTNET_CHAIN_ID
 
   if (!canClaim) return null
 
@@ -547,10 +553,14 @@ function ClientActions({ job }: { job: Job }) {
       </p>
       <Button
         onClick={onClaim}
-        disabled={claim.isPending}
-        className="h-16 px-10 rounded-none uppercase font-bold tracking-[0.3em] gap-3 bg-destructive hover:bg-destructive/90 text-white border-none text-[11px] italic"
+        disabled={claim.isPending || !onCorrectChain}
+        className="h-16 px-10 rounded-none uppercase font-bold tracking-[0.3em] gap-3 bg-destructive hover:bg-destructive/90 text-white border-none text-[11px] italic disabled:opacity-50"
       >
-        {claim.isPending ? 'Claiming...' : 'Claim_Refund'}
+        {!onCorrectChain
+          ? 'Switch to BSC Testnet to claim refund'
+          : claim.isPending
+            ? 'Claiming...'
+            : 'Claim_Refund'}
       </Button>
       {claim.error && (
         <p className="mt-4 text-xs font-mono text-destructive italic">
@@ -583,6 +593,23 @@ function ErrorView({ error }: { error: Error }) {
         </h2>
       </div>
       <p className="text-sm text-black/60 font-mono italic">{error.message}</p>
+    </div>
+  )
+}
+
+function PropagatingView({ jobId }: { jobId: bigint }) {
+  return (
+    <div className="mt-20 p-16 slab-glass border-primary/20 bg-primary/[0.02]">
+      <div className="flex items-center gap-4 mb-4">
+        <HourglassIcon className="w-6 h-6 text-primary animate-pulse" />
+        <h2 className="text-xl font-mono font-bold uppercase tracking-tighter italic">
+          Propagating_On_Chain...
+        </h2>
+      </div>
+      <p className="text-sm text-black/60 font-mono italic">
+        Waiting for RPC to index job {jobId.toString()}. This usually clears
+        within a few seconds of funding.
+      </p>
     </div>
   )
 }

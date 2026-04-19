@@ -19,12 +19,19 @@ export type UseAgentStatusResult = {
   readonly error: Error | null
 }
 
-export function useAgentStatus(jobState: number | undefined): UseAgentStatusResult {
-  const polling = jobState === undefined || !isTerminalState(jobState)
+export function useAgentStatus(
+  jobState: number | undefined,
+  jobId?: bigint | null,
+): UseAgentStatusResult {
+  // Do not start polling until the job read resolves. Polling an undefined
+  // jobState forever would keep hitting the grader for a job we don't know
+  // the on-chain state of yet.
+  const polling = jobState !== undefined && !isTerminalState(jobState)
 
   const query = useQuery<StatusResponse>({
-    queryKey: ['agentStatus'],
+    queryKey: ['agentStatus', jobId?.toString() ?? 'none'],
     queryFn: () => graderClient().getStatus(),
+    enabled: polling,
     refetchInterval: polling ? POLL_INTERVAL_MS : false,
     refetchOnWindowFocus: false,
     staleTime: 1_000,

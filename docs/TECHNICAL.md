@@ -13,7 +13,10 @@ POSTER (browser)
     |
     | 1. creates project with milestones + acceptance criteria
     v
-FRONTEND (Next.js on BSC testnet)                     [out of scope for backend]
+FRONTEND (Vercel, Next.js 16)                         frontend/
+    | - wagmi + RainbowKit on BSC testnet
+    | - calls grader HTTP API for drafts + test preview
+    | - calls JobFactory.createJob / fund / claimRefund
     |
     | 2. calls grader service to generate pytest
     v
@@ -121,7 +124,16 @@ Expected: **41 tests passed** across 7 files, plus a clean `npm run build` to `d
 
 ```bash
 cd frontend
+cp .env.local.example .env.local
 npm install
+npm run dev
+```
+
+Then open http://localhost:3000, connect a BSC testnet wallet, and walk through
+create -> preview -> funding -> project. The build check also passes:
+
+```bash
+cd frontend
 npm run build
 ```
 

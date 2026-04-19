@@ -16,7 +16,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi'
-import { getContracts } from '@/lib/contracts/addresses'
+import { BSC_TESTNET_CHAIN_ID, getContracts } from '@/lib/contracts/addresses'
 import { jobFactoryAbi } from '@/lib/contracts/jobFactory.abi'
 
 export function useClaimRefund() {
@@ -39,6 +39,11 @@ export function useClaimRefund() {
   const submit = useCallback(
     async (jobId: bigint): Promise<Hash> => {
       if (!isConnected) throw new Error('Wallet not connected')
+      if (chainId !== BSC_TESTNET_CHAIN_ID) {
+        throw new Error(
+          `Wrong chain: expected BSC testnet (${BSC_TESTNET_CHAIN_ID}), got ${chainId}`,
+        )
+      }
       const contracts = getContracts(chainId)
       const txHash = await writeContractAsync({
         abi: jobFactoryAbi,

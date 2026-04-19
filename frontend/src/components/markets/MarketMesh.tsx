@@ -14,6 +14,7 @@ interface Node {
   value: string
   status: string
   icon: any
+  jobId?: bigint | number
 }
 
 export type MarketNode = {
@@ -23,6 +24,7 @@ export type MarketNode = {
   value: string
   status: string
   icon: any
+  jobId?: bigint | number
 }
 
 type MarketMeshProps = {
@@ -63,6 +65,7 @@ export function MarketMesh({ onNodeSelect, nodes: providedNodes }: MarketMeshPro
             value: n.value,
             status: n.status,
             icon: n.icon,
+            jobId: n.jobId,
           }))
         : defaultItems
 

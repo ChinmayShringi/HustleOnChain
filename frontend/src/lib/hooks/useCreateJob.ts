@@ -15,7 +15,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi'
-import { getContracts } from '@/lib/contracts/addresses'
+import { BSC_TESTNET_CHAIN_ID, getContracts } from '@/lib/contracts/addresses'
 import { jobFactoryAbi } from '@/lib/contracts/jobFactory.abi'
 
 export type CreateJobArgs = {
@@ -73,6 +73,11 @@ export function useCreateJob() {
   const submit = useCallback(
     async (args: CreateJobArgs): Promise<Hash> => {
       if (!isConnected) throw new Error('Wallet not connected')
+      if (chainId !== BSC_TESTNET_CHAIN_ID) {
+        throw new Error(
+          `Wrong chain: expected BSC testnet (${BSC_TESTNET_CHAIN_ID}), got ${chainId}`,
+        )
+      }
       const contracts = getContracts(chainId)
       setSettleError(null)
       setJobId(undefined)

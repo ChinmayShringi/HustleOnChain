@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FloatingHeader } from '@/components/layout/FloatingHeader'
 import { CinematicBackground } from '@/components/layout/CinematicBackground'
@@ -41,6 +42,7 @@ function jobStatusLabel(state: number): string {
 }
 
 export default function MarketsPage() {
+  const router = useRouter()
   const [selectedNode, setSelectedNode] = useState<any>(null)
   const { jobs, isLoading: jobsLoading } = useAllJobs()
   const { stats, isLoading: statsLoading } = useMarketStats()
@@ -56,16 +58,31 @@ export default function MarketsPage() {
         : '0 USDT',
       status: jobStatusLabel(j.state),
       icon: ScrollText,
+      jobId: j.jobId,
     }
   })
 
-  const statCards = [
+  const selectedJobIdStr: string | null = (() => {
+    if (!selectedNode) return null
+    const raw = selectedNode.jobId
+    if (raw === undefined || raw === null) return null
+    return typeof raw === 'bigint' ? raw.toString() : String(raw)
+  })()
+
+  type StatCard = {
+    label: string
+    value: string
+    icon: typeof Coins
+    color: string
+    caption?: string
+  }
+  const statCards: StatCard[] = [
     { label: 'Total_Escrow', value: stats.totalEscrow, icon: Coins, color: 'text-primary' },
     { label: 'Active_Tranches', value: `${stats.activeTranches} Units`, icon: Landmark, color: 'text-white' },
     { label: 'Settled_Value', value: stats.settledValue, icon: ShieldCheck, color: 'text-green-400' },
     { label: 'Agents_Executing', value: `${stats.agentsExecuting} Instances`, icon: Zap, color: 'text-amber-400' },
     { label: 'Verifier_Load', value: stats.verifierLoad, icon: Cpu, color: 'text-cyan-400' },
-    { label: 'x402_Spend', value: stats.x402Spend, icon: Activity, color: 'text-[#F3BA2F]' },
+    { label: 'x402_Spend_*', value: stats.x402Spend, icon: Activity, color: 'text-[#F3BA2F]', caption: '(static)' },
   ]
 
   return (
@@ -115,6 +132,11 @@ export default function MarketsPage() {
                     <div className="h-6 w-3/4 bg-white/10 animate-pulse rounded-sm" />
                   ) : (
                     <div className="text-xl font-bold font-mono tracking-tighter text-white">{stat.value}</div>
+                  )}
+                  {stat.caption && (
+                    <div className="mt-1 text-[8px] font-mono uppercase tracking-[0.3em] text-white/30 italic">
+                      {stat.caption}
+                    </div>
                   )}
                 </div>
               </div>
@@ -194,7 +216,15 @@ export default function MarketsPage() {
                   </div>
                 </div>
 
-                <Button className="w-full h-16 rounded-none uppercase font-bold tracking-[0.3em] gap-4 bg-primary hover:bg-primary/90 text-white border-none mt-12 shadow-2xl shadow-primary/20">
+                <Button
+                  disabled={!selectedJobIdStr}
+                  onClick={() => {
+                    if (selectedJobIdStr) {
+                      router.push(`/project/${selectedJobIdStr}`)
+                    }
+                  }}
+                  className="w-full h-16 rounded-none uppercase font-bold tracking-[0.3em] gap-4 bg-primary hover:bg-primary/90 text-white border-none mt-12 shadow-2xl shadow-primary/20 disabled:opacity-40"
+                >
                   Open_Instrument <ArrowUpRight className="w-5 h-5" />
                 </Button>
               </motion.div>

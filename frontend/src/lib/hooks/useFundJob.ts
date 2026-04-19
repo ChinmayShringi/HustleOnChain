@@ -20,7 +20,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi'
-import { getContracts } from '@/lib/contracts/addresses'
+import { BSC_TESTNET_CHAIN_ID, getContracts } from '@/lib/contracts/addresses'
 import { erc20Abi } from '@/lib/contracts/erc20.abi'
 import { jobFactoryAbi } from '@/lib/contracts/jobFactory.abi'
 
@@ -105,6 +105,15 @@ export function useFundJob(amountWei: bigint | undefined) {
       if (runningRef.current) return
       if (!isConnected || !address) {
         setError(new Error('Wallet not connected'))
+        setStep('error')
+        return
+      }
+      if (chainId !== BSC_TESTNET_CHAIN_ID) {
+        setError(
+          new Error(
+            `Wrong chain: expected BSC testnet (${BSC_TESTNET_CHAIN_ID}), got ${chainId}`,
+          ),
+        )
         setStep('error')
         return
       }

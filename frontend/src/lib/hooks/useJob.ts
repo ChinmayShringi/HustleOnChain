@@ -13,6 +13,7 @@
  * reaches Completed, Rejected, or Expired.
  */
 
+import { useEffect, useRef } from 'react'
 import { useChainId, useReadContracts } from 'wagmi'
 import { getContracts } from '@/lib/contracts/addresses'
 import { jobFactoryAbi } from '@/lib/contracts/jobFactory.abi'
@@ -38,9 +39,12 @@ export type Job = {
 export type UseJobResult = {
   readonly data: Job | null
   readonly isLoading: boolean
+  readonly isPropagating: boolean
   readonly error: Error | null
   readonly refetch: () => void
 }
+
+const PROPAGATION_MAX_POLLS = 5
 
 export function useJob(jobId: bigint | null): UseJobResult {
   const chainId = useChainId()
@@ -81,13 +85,42 @@ export function useJob(jobId: bigint | null): UseJobResult {
     },
   })
 
-  const job = buildJob(jobId, query.data as
+  const tuple = query.data as
     | readonly [JobsTuple, `0x${string}`]
-    | undefined)
+    | undefined
+  const job = buildJob(jobId, tuple)
+
+  // Track number of completed polls that returned the zero tuple so we can
+  // surface an "on-chain propagating" state right after funding, before the
+  // RPC has indexed the just-mined tx. We reset whenever the jobId changes.
+  const pollsRef = useRef(0)
+  const lastJobIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const key = jobId === null ? null : jobId.toString()
+    if (lastJobIdRef.current !== key) {
+      lastJobIdRef.current = key
+      pollsRef.current = 0
+    }
+  }, [jobId])
+
+  useEffect(() => {
+    if (tuple === undefined) return
+    if (job === null) {
+      pollsRef.current += 1
+    }
+  }, [tuple, job])
+
+  const isPropagating =
+    jobId !== null &&
+    job === null &&
+    tuple !== undefined &&
+    pollsRef.current < PROPAGATION_MAX_POLLS
 
   return {
     data: job,
     isLoading: query.isLoading,
+    isPropagating,
     error: normalizeError(query.error),
     refetch: () => {
       void query.refetch()

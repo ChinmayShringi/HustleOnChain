@@ -21,6 +21,14 @@
 - [x] Grader ran sandbox, signed verdict (pass), called `submitVerdict` on-chain. Job state = 3 Completed.
 - [x] 6 demo tx hashes recorded in `bsc.address`.
 
+## Frontend wiring
+
+- [x] F0 — grader Railway prep (Dockerfile, railway.json, CORS, 503) + frontend scaffolding (contract ABIs, grader client, wagmi config, ChainGate/ConnectButton/TxToast).
+- [x] F1 — create -> preview -> funding wizard wired to grader + JobFactory (`useDraftJob`, `useGenerateTests`, `useCreateJob`, `useFundJob`).
+- [x] F2 — `/project/[id]` wired to live chain + agent status (`useJob`, `useJobEvents`, `useAgentStatus`, `useClaimRefund`, `useX402Payment`).
+- [x] F3 — live markets + home page reading chain events (`useAllJobs`, `useMarketStats`, MarketMesh, TrancheBlock).
+- [ ] Vercel deploy (frontend). **Operator action.**
+
 ## Package the submission
 
 - [x] Push to public GitHub repo `ChinmayShringi/HustleOnChain` (PRs #1 + #2 merged; backend + frontend live on `main`).

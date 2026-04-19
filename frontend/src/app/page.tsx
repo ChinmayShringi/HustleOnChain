@@ -35,13 +35,20 @@ export default function HomePage() {
   const { stats, isLoading: statsLoading } = useMarketStats()
 
   const visibleJobs = jobs.slice(0, 6)
-  const statCards = [
+  type HomeStatCard = {
+    label: string
+    value: string
+    icon: typeof Coins
+    color: string
+    caption?: string
+  }
+  const statCards: HomeStatCard[] = [
     { label: 'Total_Escrow', value: stats.totalEscrow, icon: Coins, color: 'text-primary' },
     { label: 'Active_Tranches', value: `${stats.activeTranches} Units`, icon: Landmark, color: 'text-black' },
     { label: 'Settled_Value', value: stats.settledValue, icon: ShieldCheck, color: 'text-green-600' },
     { label: 'Agents_Executing', value: `${stats.agentsExecuting} Instances`, icon: Zap, color: 'text-amber-500' },
     { label: 'Verifier_Load', value: stats.verifierLoad, icon: Cpu, color: 'text-tertiary' },
-    { label: 'x402_Spend', value: stats.x402Spend, icon: Activity, color: 'text-[#F3BA2F]' },
+    { label: 'x402_Spend_*', value: stats.x402Spend, icon: Activity, color: 'text-[#F3BA2F]', caption: '(static)' },
   ]
 
   return (
@@ -137,6 +144,11 @@ export default function HomePage() {
                   <div className="h-6 w-3/4 bg-black/10 animate-pulse rounded-sm" />
                 ) : (
                   <div className="text-xl font-bold font-mono tracking-tighter text-black">{stat.value}</div>
+                )}
+                {stat.caption && (
+                  <div className="mt-1 text-[8px] font-mono uppercase tracking-[0.3em] text-black/30 italic">
+                    {stat.caption}
+                  </div>
                 )}
               </div>
             ))}
