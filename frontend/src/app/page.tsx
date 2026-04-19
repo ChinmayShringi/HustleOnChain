@@ -26,18 +26,23 @@ import {
   Search
 } from 'lucide-react'
 import Link from 'next/link'
-
-const activeTranches = [
-  { id: 'T-1024', title: 'FizzBuzz Autonomous Liquidity', capital: '5,000 USDT', agents: 12, status: 'EXECUTING' },
-  { id: 'T-0982', title: 'Cross-Chain Sentiment Index', capital: '12,400 USDT', agents: 4, status: 'ISSUED' },
-  { id: 'T-1105', title: 'Oracle Resilience Audit', capital: '2,800 USDT', agents: 8, status: 'EXECUTING' },
-  { id: 'T-0877', title: 'LLM Prompt Refinement Layer', capital: '1,500 USDT', agents: 1, status: 'SETTLED' },
-  { id: 'T-1240', title: 'MEV Protection Sub-Agent', capital: '8,200 USDT', agents: 6, status: 'ISSUED' },
-  { id: 'T-0912', title: 'Deterministic Math Grader', capital: '3,100 USDT', agents: 3, status: 'EXECUTING' },
-]
+import { useAllJobs } from '@/lib/hooks/useAllJobs'
+import { useMarketStats } from '@/lib/hooks/useMarketStats'
 
 export default function HomePage() {
   const [selectedNode, setSelectedNode] = useState<any>(null)
+  const { jobs, isLoading: jobsLoading } = useAllJobs()
+  const { stats, isLoading: statsLoading } = useMarketStats()
+
+  const visibleJobs = jobs.slice(0, 6)
+  const statCards = [
+    { label: 'Total_Escrow', value: stats.totalEscrow, icon: Coins, color: 'text-primary' },
+    { label: 'Active_Tranches', value: `${stats.activeTranches} Units`, icon: Landmark, color: 'text-black' },
+    { label: 'Settled_Value', value: stats.settledValue, icon: ShieldCheck, color: 'text-green-600' },
+    { label: 'Agents_Executing', value: `${stats.agentsExecuting} Instances`, icon: Zap, color: 'text-amber-500' },
+    { label: 'Verifier_Load', value: stats.verifierLoad, icon: Cpu, color: 'text-tertiary' },
+    { label: 'x402_Spend', value: stats.x402Spend, icon: Activity, color: 'text-[#F3BA2F]' },
+  ]
 
   return (
     <main className="relative min-h-screen bg-transparent text-black overflow-x-hidden">
@@ -125,17 +130,14 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
-            {[
-              { label: 'Total_Escrow', value: '45,200 USDT', icon: Coins, color: 'text-primary' },
-              { label: 'Active_Tranches', value: '12 Units', icon: Landmark, color: 'text-black' },
-              { label: 'Settled_Value', value: '128,400 USDT', icon: ShieldCheck, color: 'text-green-600' },
-              { label: 'Agents_Executing', value: '34 Instances', icon: Zap, color: 'text-amber-500' },
-              { label: 'Verifier_Load', value: '0.85 ops/s', icon: Cpu, color: 'text-tertiary' },
-              { label: 'x402_Spend', value: '12.45 USDT', icon: Activity, color: 'text-[#F3BA2F]' },
-            ].map((stat) => (
+            {statCards.map((stat) => (
               <div key={stat.label} className="bg-white/40 backdrop-blur-md border border-black/5 p-6 flex flex-col gap-3 group hover:bg-white transition-all duration-500 shadow-sm">
                 <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-black/30 mb-1 italic font-mono">{stat.label}</div>
-                <div className="text-xl font-bold font-mono tracking-tighter text-black">{stat.value}</div>
+                {statsLoading ? (
+                  <div className="h-6 w-3/4 bg-black/10 animate-pulse rounded-sm" />
+                ) : (
+                  <div className="text-xl font-bold font-mono tracking-tighter text-black">{stat.value}</div>
+                )}
               </div>
             ))}
           </div>
@@ -206,19 +208,37 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
-          {activeTranches.map((tranche, i) => (
-            <motion.div
-              key={tranche.id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.8, ease: "easeOut" }}
-            >
-              <TrancheBlock tranche={tranche} />
-            </motion.div>
-          ))}
-        </div>
+        {jobsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-[420px] bg-white/40 border border-black/5 animate-pulse shadow-sm" />
+            ))}
+          </div>
+        ) : visibleJobs.length === 0 ? (
+          <div className="relative z-10 slab-glass border border-black/5 bg-white/40 p-20 flex flex-col items-center gap-8 text-center shadow-sm">
+            <div className="text-[11px] font-bold uppercase tracking-[0.5em] text-black/30 italic font-mono">NO_TRANCHES_ISSUED</div>
+            <p className="text-xl text-black/60 italic max-w-xl">No tranches have been issued on this network yet. Be the first to create a work tranche on the settlement rail.</p>
+            <Button size="lg" className="h-16 px-12 rounded-none text-[11px] font-bold uppercase tracking-[0.4em] gap-4 bg-primary hover:bg-primary/90 text-white border-none" asChild>
+              <Link href="/create">
+                Create the first <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
+            {visibleJobs.map((job, i) => (
+              <motion.div
+                key={job.jobId.toString()}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.8, ease: 'easeOut' }}
+              >
+                <TrancheBlock job={job} />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Cinematic Features Section */}

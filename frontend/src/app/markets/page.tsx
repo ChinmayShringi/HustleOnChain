@@ -4,25 +4,69 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FloatingHeader } from '@/components/layout/FloatingHeader'
 import { CinematicBackground } from '@/components/layout/CinematicBackground'
-import { MarketMesh } from '@/components/markets/MarketMesh'
+import { MarketMesh, type MarketNode } from '@/components/markets/MarketMesh'
 import { Button } from '@/components/ui/button'
-import { 
-  BarChart3, 
-  Activity, 
-  ShieldCheck, 
-  Coins, 
-  Cpu, 
-  Zap, 
-  ChevronRight, 
+import {
+  BarChart3,
+  Activity,
+  ShieldCheck,
+  Coins,
+  Cpu,
+  Zap,
+  ChevronRight,
   ArrowUpRight,
   Landmark,
   Layers,
   Search,
-  Settings2
+  Settings2,
+  ScrollText
 } from 'lucide-react'
+import { formatUnits } from 'viem'
+import { useAllJobs } from '@/lib/hooks/useAllJobs'
+import { useMarketStats } from '@/lib/hooks/useMarketStats'
+import { JobState } from '@/lib/contracts/jobState'
+
+const TUSDT_DECIMALS = 18
+
+function jobStatusLabel(state: number): string {
+  switch (state) {
+    case JobState.Open: return 'QUEUED'
+    case JobState.Funded: return 'ISSUED'
+    case JobState.Submitted: return 'EXECUTING'
+    case JobState.Completed: return 'SETTLED'
+    case JobState.Rejected: return 'FAILED'
+    case JobState.Expired: return 'EXPIRED'
+    default: return 'UNKNOWN'
+  }
+}
 
 export default function MarketsPage() {
   const [selectedNode, setSelectedNode] = useState<any>(null)
+  const { jobs, isLoading: jobsLoading } = useAllJobs()
+  const { stats, isLoading: statsLoading } = useMarketStats()
+
+  const meshNodes: MarketNode[] = jobs.slice(0, 6).map((j) => {
+    const amt = Number(formatUnits(j.amount, TUSDT_DECIMALS))
+    return {
+      id: `j-${j.jobId.toString()}`,
+      label: `Tranche_${j.jobId.toString()}`,
+      type: 'project',
+      value: Number.isFinite(amt)
+        ? `${amt.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`
+        : '0 USDT',
+      status: jobStatusLabel(j.state),
+      icon: ScrollText,
+    }
+  })
+
+  const statCards = [
+    { label: 'Total_Escrow', value: stats.totalEscrow, icon: Coins, color: 'text-primary' },
+    { label: 'Active_Tranches', value: `${stats.activeTranches} Units`, icon: Landmark, color: 'text-white' },
+    { label: 'Settled_Value', value: stats.settledValue, icon: ShieldCheck, color: 'text-green-400' },
+    { label: 'Agents_Executing', value: `${stats.agentsExecuting} Instances`, icon: Zap, color: 'text-amber-400' },
+    { label: 'Verifier_Load', value: stats.verifierLoad, icon: Cpu, color: 'text-cyan-400' },
+    { label: 'x402_Spend', value: stats.x402Spend, icon: Activity, color: 'text-[#F3BA2F]' },
+  ]
 
   return (
     <main className="min-h-screen bg-[#08080a] text-white relative overflow-hidden">
@@ -59,14 +103,7 @@ export default function MarketsPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
-            {[
-              { label: 'Total_Escrow', value: '45,200 USDT', icon: Coins, color: 'text-primary' },
-              { label: 'Active_Tranches', value: '12 Units', icon: Landmark, color: 'text-white' },
-              { label: 'Settled_Value', value: '128,400 USDT', icon: ShieldCheck, color: 'text-green-400' },
-              { label: 'Agents_Executing', value: '34 Instances', icon: Zap, color: 'text-amber-400' },
-              { label: 'Verifier_Load', value: '0.85 ops/s', icon: Cpu, color: 'text-cyan-400' },
-              { label: 'x402_Spend', value: '12.45 USDT', icon: Activity, color: 'text-[#F3BA2F]' },
-            ].map((stat) => (
+            {statCards.map((stat) => (
               <div key={stat.label} className="bg-white/[0.03] backdrop-blur-md border border-white/5 p-6 flex flex-col gap-3 group hover:bg-white/[0.07] transition-all duration-500 shadow-xl">
                 <div className="flex items-center justify-between">
                   <stat.icon className={`w-4 h-4 ${stat.color} opacity-60 group-hover:opacity-100 transition-opacity`} />
@@ -74,7 +111,11 @@ export default function MarketsPage() {
                 </div>
                 <div>
                   <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30 mb-1 italic font-mono">{stat.label}</div>
-                  <div className="text-xl font-bold font-mono tracking-tighter text-white">{stat.value}</div>
+                  {statsLoading ? (
+                    <div className="h-6 w-3/4 bg-white/10 animate-pulse rounded-sm" />
+                  ) : (
+                    <div className="text-xl font-bold font-mono tracking-tighter text-white">{stat.value}</div>
+                  )}
                 </div>
               </div>
             ))}
@@ -83,7 +124,17 @@ export default function MarketsPage() {
 
         {/* The Star: Market Mesh Visualization */}
         <div className="flex-1 relative slab-glass overflow-hidden border-white/5 bg-black/40 shadow-2xl rounded-sm">
-          <MarketMesh onNodeSelect={setSelectedNode} />
+          <MarketMesh
+            onNodeSelect={setSelectedNode}
+            nodes={meshNodes.length > 0 ? meshNodes : undefined}
+          />
+          {!jobsLoading && meshNodes.length === 0 && (
+            <div className="absolute inset-x-0 bottom-8 flex justify-center z-20 pointer-events-none">
+              <div className="px-6 py-3 bg-black/70 border border-white/10 text-[10px] font-bold uppercase tracking-[0.4em] text-white/60 italic font-mono">
+                NO_TRANCHES_ISSUED
+              </div>
+            </div>
+          )}
           
           {/* Overlay Navigation / Legend */}
           <div className="absolute top-8 left-8 flex flex-col gap-4 z-20">

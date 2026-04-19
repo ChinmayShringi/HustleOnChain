@@ -16,7 +16,23 @@ interface Node {
   icon: any
 }
 
-export function MarketMesh({ onNodeSelect }: { onNodeSelect: (node: any) => void }) {
+export type MarketNode = {
+  id: string
+  label: string
+  type: 'core' | 'project' | 'wallet' | 'verifier' | 'x402'
+  value: string
+  status: string
+  icon: any
+}
+
+type MarketMeshProps = {
+  onNodeSelect: (node: any) => void
+  /** When supplied, these replace the built-in static nodes. The "core"
+   *  settlement root is always auto-injected at the centre of the ring. */
+  nodes?: readonly MarketNode[]
+}
+
+export function MarketMesh({ onNodeSelect, nodes: providedNodes }: MarketMeshProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
@@ -29,7 +45,7 @@ export function MarketMesh({ onNodeSelect }: { onNodeSelect: (node: any) => void
     const radius = 28
     const baseZ = 60 // Unifying base height for perfect projection alignment
     
-    const items = [
+    const defaultItems = [
       { id: 'w1', label: 'Owner_Vault', type: 'wallet' as const, value: '0x4F9...A28B', status: 'ACTIVE', icon: Wallet },
       { id: 'p1', label: 'Tranche_Alpha', type: 'project' as const, value: '45,000 USDT', status: 'EXECUTING', icon: ScrollText },
       { id: 'p2', label: 'Tranche_Beta', type: 'project' as const, value: '12,400 USDT', status: 'ISSUED', icon: ScrollText },
@@ -37,6 +53,18 @@ export function MarketMesh({ onNodeSelect }: { onNodeSelect: (node: any) => void
       { id: 'v1', label: 'Verifier_S9', type: 'verifier' as const, value: 'PASS', status: 'ACTIVE', icon: ShieldCheck },
       { id: 'x1', label: 'x402_Payout', type: 'x402' as const, value: '0.045 BTC', status: 'ROUTING', icon: Coins },
     ]
+
+    const items =
+      providedNodes && providedNodes.length > 0
+        ? providedNodes.slice(0, 12).map((n) => ({
+            id: n.id,
+            label: n.label,
+            type: n.type,
+            value: n.value,
+            status: n.status,
+            icon: n.icon,
+          }))
+        : defaultItems
 
     return [
       { id: 'core', label: 'Settlement_Root', type: 'core' as const, x: coreX, y: coreY, z: baseZ, value: '12.5 BTC', status: 'SYNCHRONIZED', icon: Landmark },
@@ -50,7 +78,7 @@ export function MarketMesh({ onNodeSelect }: { onNodeSelect: (node: any) => void
         }
       })
     ]
-  }, [])
+  }, [providedNodes])
 
   // 2. TOPOGRAPHIC ENGINE
   useEffect(() => {
