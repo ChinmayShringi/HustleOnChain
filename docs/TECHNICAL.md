@@ -57,15 +57,19 @@ Repo slice owned here:
 
 ## 3. Onchain proof
 
-Network: **BSC Testnet (chainId 97)**.
+Network: **BSC Testnet (chainId 97)**. **LIVE.**
 
 | Artifact | Address |
 |---|---|
-| JobFactory | TBD (run `scripts/Deploy.s.sol`) |
-| GraderEvaluator | TBD (run `scripts/Deploy.s.sol`) |
+| JobFactory | `0x2B1260F32F7bce71E648D5Ac0C937A95F01b1AEB` |
+| GraderEvaluator | `0x169c268DAd2e782da52B6c73A5ca553724205868` |
+| tUSDT (demo ERC20) | `0x31E63bAE223e048ce4114fD8a2bF7f39Ff422882` |
 | ERC-8183 reference (BNBAgent SDK) | `0x3464e64dD53bC093c53050cE5114062765e9F1b6` |
 
-Demo txs: see `bsc.address` at repo root.
+End-to-end demo on BSC testnet (jobId=1, 2026-04-18): 6 txs, job state Completed, verdict pass. Proof link:
+https://testnet.bscscan.com/tx/0xade1197d74f195c3d371dee541270c71a4b55c04a4e5278267c68dea2e933421
+
+Full tx hash list: see `bsc.address` at repo root. Foundry broadcast artifacts in `backend/contracts/broadcast/DeployAll.s.sol/97/`.
 
 The evaluator digest binds the job id, pass flag, and the evaluator contract address (`keccak256(abi.encode(jobId, passed, address(this)))`), ensuring a verdict signed for one evaluator cannot be replayed against another. Cross-chain replay via CREATE2-redeploy at the same address is documented as a limitation (see §Limitations).
 
