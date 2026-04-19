@@ -39,7 +39,20 @@ def get_web3():
     s = get_settings()
     if not s.BSC_RPC_URL:
         raise RuntimeError("BSC_RPC_URL not configured")
-    return Web3(Web3.HTTPProvider(s.BSC_RPC_URL))
+    w3 = Web3(Web3.HTTPProvider(s.BSC_RPC_URL))
+    # BSC is PoA; extraData is >32 bytes and web3.py >=6 needs the
+    # ExtraDataToPOAMiddleware (a.k.a. geth_poa_middleware) injected so it can
+    # decode blocks when fetching receipts. Fall back silently on web3 versions
+    # that don't expose the middleware (tests use mocks).
+    try:
+        try:
+            from web3.middleware import ExtraDataToPOAMiddleware as _poa
+        except ImportError:
+            from web3.middleware import geth_poa_middleware as _poa
+        w3.middleware_onion.inject(_poa, layer=0)
+    except Exception:
+        pass
+    return w3
 
 
 app = FastAPI(title="AgentWork Grader", version="0.2.0")

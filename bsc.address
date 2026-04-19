@@ -2,18 +2,30 @@
 
 Network: BSC Testnet (chainId 97)
 
-JobFactory:         TBD (run backend/contracts/script/Deploy.s.sol)
-GraderEvaluator:    TBD
+JobFactory:         0x2B1260F32F7bce71E648D5Ac0C937A95F01b1AEB
+GraderEvaluator:    0x169c268DAd2e782da52B6c73A5ca553724205868
+tUSDT (demo ERC20): 0x31E63bAE223e048ce4114fD8a2bF7f39Ff422882
 ERC-8183 reference: 0x3464e64dD53bC093c53050cE5114062765e9F1b6  (BNBAgent SDK, for interoperability)
 
-Demo tx hashes (to populate after cold-start demo):
-- createJob (M1):  TBD
-- fund (M1):       TBD
-- submit (M1):     TBD
-- submitVerdict (M1 pass): TBD
-- x402 payment:    TBD
+Deployer / Poster / Agent (same EOA): 0xB50F397d52f9E19ec60130aE11967bd0bB03275b
+Grader verdict signer:                0x06744cD01fA88ec9Cf6689a44CC53117Ab0B9326
 
-To populate:
+Demo tx hashes (end-to-end FizzBuzz job, jobId=1, 2026-04-18):
+- approve (tUSDT to JobFactory):  0xce155417ea371d1a32f2c70296c66517b4f1fa0107ce6695b0ea3f922a2f8ad7
+- createJob (M1):                 0xcbdda77877555a6f5c385aabf12d21d8248b5a3f0d38a7651fa41463e09e729e
+- fund (M1):                      0xad98be935c124cdab485182074fd3859343483c214cecac0aa08dd69fd1e0a08
+- x402 payment (USDT transfer):   0xef97a65024a54e0d85abc80cfcff31358b1fd2da6dba30bfa3ab438a3e5d0c8c
+- submit (M1):                    0xd03f82f5b81379283f115d347a99e7abfe42973a29a8a26123a4b90f267bcaf3
+- submitVerdict (M1 pass):        0xade1197d74f195c3d371dee541270c71a4b55c04a4e5278267c68dea2e933421
+
+Final state: jobs(1).state == 3 (Completed)
+Verdict: pass (4/4 pytest assertions green)
+Task hash: 0x572ab0a6c37d134ab284472b9289fd780ace5f46c36baa4a00d091fdb012a0d1
+
+Proof link (bscscan testnet):
+  https://testnet.bscscan.com/tx/0xade1197d74f195c3d371dee541270c71a4b55c04a4e5278267c68dea2e933421
+
+To reproduce:
   cd backend/contracts
   forge script script/Deploy.s.sol --rpc-url https://data-seed-prebsc-1-s1.binance.org:8545 --broadcast
 

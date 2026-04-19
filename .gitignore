@@ -1,7 +1,12 @@
 .DS_Store
 *.env
+.env.local
+.env.testnet
 !.env.example
 .idea/
 .vscode/
 *.log
 .remember/tmp/
+backend/grader/data/
+backend/contracts/broadcast/
+backend/contracts/cache/
