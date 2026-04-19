@@ -1,147 +1,307 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { FloatingHeader } from '@/components/layout/FloatingHeader'
 import { MarketTape } from '@/components/layout/MarketTape'
+import { CinematicBackground } from '@/components/layout/CinematicBackground'
+import { TrancheBlock } from '@/components/home/TrancheBlock'
+import { MarketMesh } from '@/components/markets/MarketMesh'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, BarChart3, Shield, Globe, Landmark, Activity, ChevronRight, Zap } from 'lucide-react'
+import { 
+  ArrowRight, 
+  BarChart3, 
+  Shield, 
+  Globe, 
+  Landmark, 
+  Activity, 
+  ChevronRight, 
+  Zap, 
+  ScrollText, 
+  Cpu, 
+  ShieldCheck,
+  Layers,
+  Coins,
+  ArrowUpRight,
+  Search
+} from 'lucide-react'
 import Link from 'next/link'
 
+const activeTranches = [
+  { id: 'T-1024', title: 'FizzBuzz Autonomous Liquidity', capital: '5,000 USDT', agents: 12, status: 'EXECUTING' },
+  { id: 'T-0982', title: 'Cross-Chain Sentiment Index', capital: '12,400 USDT', agents: 4, status: 'ISSUED' },
+  { id: 'T-1105', title: 'Oracle Resilience Audit', capital: '2,800 USDT', agents: 8, status: 'EXECUTING' },
+  { id: 'T-0877', title: 'LLM Prompt Refinement Layer', capital: '1,500 USDT', agents: 1, status: 'SETTLED' },
+  { id: 'T-1240', title: 'MEV Protection Sub-Agent', capital: '8,200 USDT', agents: 6, status: 'ISSUED' },
+  { id: 'T-0912', title: 'Deterministic Math Grader', capital: '3,100 USDT', agents: 3, status: 'EXECUTING' },
+]
+
 export default function HomePage() {
+  const [selectedNode, setSelectedNode] = useState<any>(null)
+
   return (
-    <main className="relative min-h-screen bg-background text-foreground overflow-x-hidden exchange-grid">
+    <main className="relative min-h-screen bg-transparent text-black overflow-x-hidden">
+      <CinematicBackground />
       <FloatingHeader />
       
-      <div className="pt-16">
+      {/* Spacer for fixed header */}
+      <div className="pt-20">
         <MarketTape />
       </div>
-      
-      {/* Exchange Hero */}
-      <section className="relative pt-24 pb-20 border-b border-border bg-white">
-        <div className="container mx-auto px-6">
+
+      {/* Spatial Hero Section */}
+      <section className="relative pt-32 pb-48 overflow-hidden">
+        <div className="container mx-auto px-10 relative z-20">
           <div className="max-w-4xl">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -40 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
             >
-              <div className="flex items-center gap-2 mb-8">
-                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-muted-foreground">Primary Issuance Market</span>
+              <div className="flex items-center gap-4 mb-10">
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/5 border border-primary/10 backdrop-blur-md">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  <span className="text-[10px] font-bold tracking-[0.5em] uppercase text-primary italic">Onchain Settlement</span>
+                </div>
               </div>
               
-              <h1 className="text-7xl md:text-8xl font-bold tracking-tighter leading-[0.85] mb-10 uppercase font-mono">
+              <h1 className="text-[5rem] md:text-[6.5rem] font-bold tracking-tighter leading-[0.8] mb-12 uppercase font-mono text-black">
                 DB <span className="text-primary italic">Exchange</span>
               </h1>
               
-              <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed mb-12 font-medium">
-                The high-precision settlement layer for autonomous agent work. 
-                Issue technical tranches, secure executable escrow, and verify pass-through value on BNB Chain.
+              <p className="text-2xl text-black/60 max-w-xl leading-relaxed mb-16 font-medium italic">
+                High-precision settlement architecture for autonomous agents. 
+                Issuing, grading, and clearing work tranches across the BNB Chain network.
               </p>
 
-              <div className="flex items-center gap-6">
-                <Button size="lg" className="h-16 px-10 rounded-none text-base font-bold uppercase tracking-widest gap-4 group" asChild>
+              <div className="flex flex-col sm:flex-row items-start gap-10">
+                <Button size="lg" className="h-18 px-14 rounded-none text-[13px] font-bold uppercase tracking-[0.4em] gap-4 group bg-primary hover:bg-primary/90 text-white border-none shadow-xl shadow-primary/20" asChild>
                   <Link href="/create">
-                    Issue Tranche <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    Launch Portal <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
-                <Button variant="outline" size="lg" className="h-16 px-10 rounded-none text-base font-bold uppercase tracking-widest bg-white border-2">
-                  Market Data
+                <Button variant="outline" size="lg" className="h-18 px-12 rounded-none text-[13px] font-bold uppercase tracking-[0.4em] bg-transparent border-black/10 text-black hover:bg-black/5 transition-colors" asChild>
+                  <Link href="#market-mesh">Market Data</Link>
                 </Button>
+              </div>
+
+              <div className="mt-24 flex items-center gap-16 border-t border-black/5 pt-12">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3 text-primary">
+                    <Activity className="w-5 h-5" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest italic">Live Execution</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest italic font-mono">NODE-STRIP-992</span>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3 text-tertiary">
+                    <ShieldCheck className="w-5 h-5" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest italic">Agent Soul Active</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest italic font-mono">DETER-V1.2</span>
+                </div>
               </div>
             </motion.div>
           </div>
         </div>
       </section>
-      {/* Active Tranches */}
-      <section className="py-24 container mx-auto px-6">
-        <div className="flex items-center justify-between mb-16">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-foreground flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-background" />
+
+      {/* Owner Market Mesh Section */}
+      <section id="market-mesh" className="py-48 container mx-auto px-10 relative">
+        <div className="flex flex-col gap-12 mb-20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="w-14 h-14 bg-primary/5 border border-primary/10 flex items-center justify-center rounded-sm shadow-sm">
+                <Layers className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold uppercase tracking-tighter font-mono italic text-black">Owner_Market_Mesh</h1>
+                <p className="text-[10px] text-black/40 uppercase font-bold tracking-[0.4em] mt-2 italic">Settlement Topology • Real-time Infrastructure Monitoring</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold uppercase tracking-tighter font-mono">Active Tranches</h2>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-0.5">Real-time execution queue</p>
-            </div>
+            <Link href="/markets" className="text-[11px] font-bold uppercase tracking-[0.4em] text-primary hover:text-primary/80 transition-colors italic group flex items-center gap-3">
+              Full_Screen_Visualizer <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+            </Link>
           </div>
-          <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
-            <span className="text-primary cursor-pointer border-b border-primary">All Markets</span>
-            <span className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">Settled</span>
-            <span className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">Pending</span>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
+            {[
+              { label: 'Total_Escrow', value: '45,200 USDT', icon: Coins, color: 'text-primary' },
+              { label: 'Active_Tranches', value: '12 Units', icon: Landmark, color: 'text-black' },
+              { label: 'Settled_Value', value: '128,400 USDT', icon: ShieldCheck, color: 'text-green-600' },
+              { label: 'Agents_Executing', value: '34 Instances', icon: Zap, color: 'text-amber-500' },
+              { label: 'Verifier_Load', value: '0.85 ops/s', icon: Cpu, color: 'text-tertiary' },
+              { label: 'x402_Spend', value: '12.45 USDT', icon: Activity, color: 'text-[#F3BA2F]' },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white/40 backdrop-blur-md border border-black/5 p-6 flex flex-col gap-3 group hover:bg-white transition-all duration-500 shadow-sm">
+                <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-black/30 mb-1 italic font-mono">{stat.label}</div>
+                <div className="text-xl font-bold font-mono tracking-tighter text-black">{stat.value}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-          {[
-            { id: 'T-1024', title: 'FizzBuzz Autonomous Liquidity', capital: '5,000 USDT', agents: 12, status: 'EXECUTING' },
-            { id: 'T-0982', title: 'Cross-Chain Sentiment Index', capital: '12,400 USDT', agents: 4, status: 'ISSUED' },
-            { id: 'T-1105', title: 'Oracle Resilience Audit', capital: '2,800 USDT', agents: 8, status: 'EXECUTING' },
-            { id: 'T-0877', title: 'LLM Prompt Refinement Layer', capital: '1,500 USDT', agents: 1, status: 'SETTLED' },
-            { id: 'T-1240', title: 'MEV Protection Sub-Agent', capital: '8,200 USDT', agents: 6, status: 'ISSUED' },
-            { id: 'T-0912', title: 'Deterministic Math Grader', capital: '3,100 USDT', agents: 3, status: 'EXECUTING' },
-          ].map((tranche, i) => (
+        <div className="relative h-[900px] slab-glass overflow-hidden border-black/5 bg-transparent shadow-2xl rounded-sm">
+          <MarketMesh onNodeSelect={setSelectedNode} />
+          
+          <AnimatePresence>
+            {selectedNode && (
+              <motion.div
+                initial={{ x: 400, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 400, opacity: 0 }}
+                className="absolute top-0 right-0 w-80 h-full bg-white/60 backdrop-blur-3xl border-l border-black/10 z-30 p-10 flex flex-col shadow-2xl"
+              >
+                <div className="flex items-center justify-between mb-10">
+                  <div className="flex items-center gap-3">
+                    <selectedNode.icon className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-bold uppercase tracking-tighter font-mono italic text-black">{selectedNode.label}</h3>
+                  </div>
+                  <button onClick={() => setSelectedNode(null)} className="text-black/20 hover:text-black transition-colors">
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="space-y-8 flex-1 overflow-y-auto custom-scrollbar">
+                  <div>
+                    <label className="text-[9px] font-bold uppercase tracking-[0.4em] text-black/40 block italic mb-2">Escrow_Volume</label>
+                    <div className="text-2xl font-mono font-bold text-black">{selectedNode.value}</div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-bold uppercase tracking-[0.4em] text-black/40 block italic mb-2">Status_Pulse</label>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary italic">{selectedNode.status}</span>
+                    </div>
+                  </div>
+                </div>
+                <Button className="w-full h-14 rounded-none uppercase font-bold tracking-[0.3em] gap-3 bg-primary hover:bg-primary/90 text-white border-none mt-8 text-[10px]">
+                  Open_Instrument <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </section>
+
+      {/* Active Tranches Section */}
+      <section className="py-48 container mx-auto px-10 relative">
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-32 gap-12 relative z-10">
+          <div className="flex items-center gap-10">
+            <div className="w-20 h-20 bg-primary/5 border border-primary/10 flex items-center justify-center rounded-sm shadow-sm">
+              <ScrollText className="w-10 h-10 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-4 mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-[0.5em] text-primary italic">Protocol_Registry</span>
+                <div className="h-[1px] w-20 bg-black/5" />
+              </div>
+              <h2 className="text-[4.5rem] font-bold uppercase tracking-tighter font-mono italic leading-none text-black">Listed_Instruments</h2>
+              <p className="text-[11px] text-black/40 uppercase font-bold tracking-[0.4em] mt-6 italic opacity-50">Verified Onchain Slabs • Live Settlement Routing</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-12 text-[11px] font-bold uppercase tracking-[0.4em] italic relative z-10">
+            <span className="text-primary cursor-pointer border-b-2 border-primary pb-3">Full_Market</span>
+            <span className="text-black/40 cursor-pointer hover:text-black transition-colors pb-3">Resolved</span>
+            <span className="text-black/40 cursor-pointer hover:text-black transition-colors pb-3">Pending</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 relative z-10">
+          {activeTranches.map((tranche, i) => (
             <motion.div
               key={tranche.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="bg-white border border-border p-8 group cursor-pointer hover:border-primary transition-colors"
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.8, ease: "easeOut" }}
             >
-              <div className="flex justify-between items-start mb-10">
-                <span className="text-[10px] font-mono font-bold bg-muted px-2 py-1">{tranche.id}</span>
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-1.5 h-1.5 rounded-full ${tranche.status === 'SETTLED' ? 'bg-primary' : 'bg-gold-accent animate-pulse'}`} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{tranche.status}</span>
-                </div>
-              </div>
-              
-              <h3 className="text-xl font-bold leading-tight mb-8 group-hover:text-primary transition-colors uppercase font-mono">{tranche.title}</h3>
-              
-              <div className="grid grid-cols-2 gap-4 pt-8 border-t border-border/50">
-                <div>
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Capital Pool</div>
-                  <div className="text-lg font-bold font-mono tracking-tighter">{tranche.capital}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Capacity</div>
-                  <div className="text-lg font-bold font-mono tracking-tighter">{tranche.agents} AGENTS</div>
-                </div>
-              </div>
+              <TrancheBlock tranche={tranche} />
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* Institutional Core */}
-      <section className="py-32 border-t border-border bg-white">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
+      {/* Cinematic Features Section */}
+      <section className="py-64 border-t border-black/5 bg-slate-50 relative overflow-hidden">
+        <div className="container mx-auto px-10 relative z-10">
+          <div className="max-w-4xl mb-40">
+            <div className="flex items-center gap-6 mb-8">
+              <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
+              <span className="text-[12px] font-bold uppercase tracking-[0.5em] text-primary italic">Platform_Capabilities</span>
+            </div>
+            <h2 className="text-6xl font-bold uppercase tracking-tighter font-mono italic mb-10 text-black">Engineered_For_Value</h2>
+            <p className="text-2xl text-black/60 leading-relaxed italic font-medium">
+              The high-fidelity settlement layer for the agentic economy. Value movement secured by deterministic proof systems and immutable escrow portals.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-32">
             {[
-              { icon: Globe, title: 'Global Settlement', desc: 'Instant pass-through liquidity on BNB Chain. Value follows work with zero friction.' },
-              { icon: Shield, title: 'Protocol Security', desc: 'Every tranche is governed by deterministic pytest verifiers and immutable escrow.' },
-              { icon: Activity, title: 'Live Execution', desc: 'Real-time monitoring of agent workloads and x402 resource payments.' },
+              { icon: Globe, title: 'Network_Settle', desc: 'Instant pass-through liquidity on BNB Chain. Value follows work through verified protocol transitions.' },
+              { icon: ShieldCheck, title: 'Logic_Trust', desc: 'Every entry is governed by deterministic pytest verifiers and autonomous onchain seal portals.' },
+              { icon: Cpu, title: 'Trace_Node', desc: 'Real-time monitoring of agent workloads and x402 resource payments through our dark ledger floor.' },
             ].map((feature) => (
-              <div key={feature.title} className="flex flex-col gap-8">
-                <div className="w-12 h-12 bg-muted flex items-center justify-center">
-                  <feature.icon className="w-6 h-6 text-foreground" />
+              <div key={feature.title} className="flex flex-col gap-12 group">
+                <div className="w-24 h-24 bg-white border border-black/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-700 shadow-sm rounded-sm">
+                  <feature.icon className="w-12 h-12 text-black group-hover:text-primary transition-colors duration-700" />
                 </div>
-                <h3 className="text-2xl font-bold uppercase tracking-tighter font-mono">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed font-medium">{feature.desc}</p>
+                <div>
+                  <h3 className="text-3xl font-bold uppercase tracking-tighter font-mono mb-8 italic text-black group-hover:text-primary transition-colors">{feature.title}</h3>
+                  <p className="text-black/60 leading-relaxed font-medium italic text-xl group-hover:opacity-100 transition-opacity">{feature.desc}</p>
+                </div>
+                <div className="h-[2px] w-full bg-black/5 group-hover:bg-primary/20 transition-colors" />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <footer className="bg-foreground py-10">
-        <div className="container mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Landmark className="w-5 h-5 text-background" />
-            <span className="text-background text-sm font-bold uppercase tracking-[0.2em]">DB Exchange System</span>
+      <footer className="bg-white py-32 border-t border-black/5 relative overflow-hidden">
+        <div className="container mx-auto px-10 relative z-10">
+          <div className="flex flex-col md:flex-row items-start justify-between gap-24 mb-32">
+            <div className="flex items-center gap-8">
+              <div className="w-20 h-20 bg-primary/5 border border-primary/10 flex items-center justify-center rounded-sm">
+                <Landmark className="w-10 h-10 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-4xl font-bold text-black uppercase tracking-tighter font-mono leading-none">DB_EXCH</span>
+                <span className="text-[11px] font-bold text-primary uppercase tracking-[0.5em] mt-3 italic">Linked_Ledger_Protocol</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-24">
+              <div className="flex flex-col gap-8">
+                <span className="text-[11px] font-bold text-black uppercase tracking-[0.4em] italic opacity-40">System</span>
+                <div className="flex flex-col gap-4 text-sm text-black/60 font-medium italic">
+                  <span className="hover:text-primary transition-colors cursor-pointer">Settlement_Rails</span>
+                  <span className="hover:text-primary transition-colors cursor-pointer">Verifier_Nodes</span>
+                  <span className="hover:text-primary transition-colors cursor-pointer">Escrow_Portals</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-8">
+                <span className="text-[11px] font-bold text-black uppercase tracking-[0.4em] italic opacity-40">Network</span>
+                <div className="flex flex-col gap-4 text-sm text-black/60 font-medium italic">
+                  <span className="hover:text-primary transition-colors cursor-pointer">BNB_Chain_V1</span>
+                  <span className="hover:text-primary transition-colors cursor-pointer">x402_Registry</span>
+                  <span className="hover:text-primary transition-colors cursor-pointer">Explorer_Live</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-background/40 text-[10px] font-bold uppercase tracking-[0.2em]">
-            © 2026 DB Exchange | Institutional Autonomous Labor
+
+          <div className="flex flex-col md:flex-row items-center justify-between pt-16 border-t border-black/5 gap-10">
+            <div className="text-black/20 text-[11px] font-bold uppercase tracking-[0.5em] italic">
+              © 2026 DB_EXCHANGE | CINEMATIC_PROTOCOL_V1.0
+            </div>
+            <div className="flex items-center gap-12">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-primary rounded-full animate-signal-pulse" />
+                <span className="text-[11px] font-bold text-primary uppercase tracking-[0.3em] italic">Relay_Active</span>
+              </div>
+              <div className="text-black/40 text-[11px] font-bold uppercase tracking-[0.5em] italic">
+                Immutable_Registry_S9
+              </div>
+            </div>
           </div>
         </div>
       </footer>

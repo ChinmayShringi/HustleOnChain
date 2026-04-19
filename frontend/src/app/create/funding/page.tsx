@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FloatingHeader } from '@/components/layout/FloatingHeader'
+import { CinematicBackground } from '@/components/layout/CinematicBackground'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check, Loader2, Coins, Wallet, ShieldCheck, ArrowRight, Activity } from 'lucide-react'
+import { Check, Loader2, Coins, Wallet, ShieldCheck, ArrowRight, Activity, Zap } from 'lucide-react'
 import Link from 'next/link'
 
 const steps = [
@@ -30,21 +31,22 @@ export default function FundingPage() {
   }, [currentStep])
 
   return (
-    <main className="min-h-screen bg-background exchange-grid">
+    <main className="min-h-screen bg-white text-black relative">
+      <CinematicBackground />
       <FloatingHeader />
       
-      <div className="pt-32 pb-40 container mx-auto px-6 max-w-3xl">
-        <div className="flex items-center gap-4 mb-16">
-          <div className="w-12 h-12 bg-foreground flex items-center justify-center">
-            <Activity className="w-6 h-6 text-background" />
+      <div className="pt-40 pb-48 container mx-auto px-10 max-w-4xl relative z-10">
+        <div className="flex items-center gap-6 mb-20">
+          <div className="w-16 h-16 bg-primary/5 border border-primary/10 flex items-center justify-center rounded-sm shadow-sm">
+            <Activity className="w-10 h-10 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold uppercase tracking-tighter font-mono leading-none">Funding Sequence</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1">Onchain Capital Commitment</p>
+            <h1 className="text-4xl font-bold uppercase tracking-tighter font-mono leading-none text-black">Funding_Sequence</h1>
+            <p className="text-[10px] text-black/40 uppercase font-bold tracking-[0.4em] mt-3 italic opacity-60">Onchain Capital Commitment</p>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {steps.map((step, index) => {
             const isActive = index === currentStep
             const isDone = index < currentStep
@@ -52,35 +54,35 @@ export default function FundingPage() {
             return (
               <motion.div
                 key={step.id}
-                initial={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.2 }}
-                className={`p-8 border-2 transition-all duration-500 ${
-                  isActive ? 'border-primary bg-white shadow-xl scale-[1.02]' : 
-                  isDone ? 'border-border bg-muted/50 opacity-60' : 
-                  'border-border/30 bg-transparent opacity-30'
+                className={`p-10 slab-glass transition-all duration-700 ${
+                  isActive ? 'border-primary/40 bg-primary/5 scale-[1.03] z-20 shadow-xl shadow-primary/5' : 
+                  isDone ? 'border-black/5 opacity-60 scale-100' : 
+                  'border-black/5 opacity-20'
                 }`}
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex gap-6">
-                    <div className={`w-12 h-12 flex items-center justify-center ${
-                      isDone ? 'bg-primary' : isActive ? 'bg-foreground' : 'bg-muted'
+                  <div className="flex gap-8">
+                    <div className={`w-16 h-16 flex items-center justify-center rounded-sm transition-colors duration-700 ${
+                      isDone ? 'bg-primary' : isActive ? 'bg-black/5' : 'bg-black/[0.02]'
                     }`}>
-                      {isDone ? <Check className="w-6 h-6 text-background" /> : 
-                       isActive ? <Loader2 className="w-6 h-6 text-background animate-spin" /> : 
-                       <Wallet className="w-6 h-6 text-muted-foreground" />}
+                      {isDone ? <Check className="w-8 h-8 text-white" /> : 
+                       isActive ? <Loader2 className="w-8 h-8 text-primary animate-spin" /> : 
+                       <Wallet className="w-8 h-8 text-black/20" />}
                     </div>
                     <div>
-                      <h3 className={`text-xl font-bold uppercase tracking-tighter font-mono mb-2 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      <h3 className={`text-2xl font-bold uppercase tracking-tighter font-mono mb-3 italic ${isActive ? 'text-black' : 'text-black/40'}`}>
                         {step.label}
                       </h3>
-                      <p className="text-sm font-medium text-muted-foreground">{step.desc}</p>
+                      <p className="text-lg font-medium text-black/40 italic">{step.desc}</p>
                     </div>
                   </div>
                   {isDone && (
-                    <Badge variant="outline" className="rounded-none border-2 font-mono font-bold text-[10px] bg-background text-primary border-primary">
+                    <div className="px-4 py-2 bg-primary/10 border border-primary/20 text-primary font-mono font-bold text-[10px] tracking-widest italic">
                       SETTLED
-                    </Badge>
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -91,18 +93,20 @@ export default function FundingPage() {
         <AnimatePresence>
           {isComplete && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-16 p-10 bg-foreground text-background flex flex-col items-center text-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-20 p-16 slab-glass border-primary/20 bg-white flex flex-col items-center text-center shadow-2xl shadow-primary/10"
             >
-              <ShieldCheck className="w-16 h-16 text-primary mb-6" />
-              <h2 className="text-3xl font-bold uppercase tracking-tighter font-mono mb-4">Capital Secured</h2>
-              <p className="text-background/60 max-w-md mb-10 font-medium">
-                The issuance sequence for **DB Exchange** is complete. Your tranches are now live in the primary market.
+              <div className="w-24 h-24 bg-primary/10 border border-primary/20 flex items-center justify-center rounded-full mb-10 shadow-lg shadow-primary/5">
+                <ShieldCheck className="w-14 h-14 text-primary" />
+              </div>
+              <h2 className="text-5xl font-bold uppercase tracking-tighter font-mono mb-6 text-black italic">Capital_Secured</h2>
+              <p className="text-black/60 max-w-lg mb-12 text-xl italic font-medium">
+                The issuance sequence for <span className="text-primary">DB Exchange</span> is complete. Your tranches are now live in the primary market.
               </p>
-              <Button size="lg" className="h-16 px-12 rounded-none bg-background text-foreground hover:bg-primary hover:text-background transition-colors uppercase font-bold tracking-[0.2em] gap-4" asChild>
+              <Button size="lg" className="h-20 px-16 rounded-none bg-primary hover:bg-primary/90 text-white transition-all uppercase font-bold tracking-[0.3em] gap-5 border-none text-base shadow-xl shadow-primary/20" asChild>
                 <Link href="/project/1">
-                  Enter Settlement Floor <ArrowRight className="w-5 h-5" />
+                  Enter Settlement Floor <ArrowRight className="w-6 h-6" />
                 </Link>
               </Button>
             </motion.div>

@@ -12,16 +12,16 @@ const transactions = [
 
 export function MarketTape() {
   return (
-    <div className="w-full bg-foreground py-3 overflow-hidden flex items-center border-y border-white/10">
+    <div className="w-full bg-[#f0f0f2] py-4 overflow-hidden flex items-center border-y border-black/5 relative z-30">
       <div className="flex whitespace-nowrap animate-ticker">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center">
             {transactions.map((tx) => (
-              <div key={tx.id} className="flex items-center gap-8 px-12 border-r border-white/5">
-                <span className="text-[10px] font-mono font-medium text-background/40 uppercase tracking-widest">{tx.type}</span>
-                <span className="text-[10px] font-mono font-bold text-background uppercase tracking-tight">{tx.id}</span>
-                <span className="text-[10px] font-mono font-medium text-primary uppercase tracking-tight">{tx.amount}</span>
-                <div className={`w-1 h-1 rounded-full ${tx.status === 'PASS' || tx.status === 'COMPLETED' ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+              <div key={tx.id} className="flex items-center gap-10 px-16 border-r border-black/5 group hover:bg-black/5 transition-colors duration-500">
+                <span className="text-[10px] font-mono font-bold text-black/30 uppercase tracking-[0.4em] italic group-hover:text-black/50 transition-colors">{tx.type}</span>
+                <span className="text-[11px] font-mono font-bold text-black uppercase tracking-widest italic">{tx.id}</span>
+                <span className="text-[11px] font-mono font-bold text-primary uppercase tracking-tighter italic">{tx.amount}</span>
+                <div className={`w-2 h-2 rounded-full ${tx.status === 'PASS' || tx.status === 'COMPLETED' ? 'bg-primary shadow-[0_0_10px_rgba(var(--primary),0.4)] animate-signal-pulse' : 'bg-black/10'}`} />
               </div>
             ))}
           </div>
