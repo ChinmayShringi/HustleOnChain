@@ -1,263 +1,827 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { FloatingHeader } from '@/components/layout/FloatingHeader'
+/**
+ * Live view of a single AgentWork job.
+ *
+ * Layout:
+ *   Header — job ID, state badge, escrow amount, expiry countdown.
+ *   Left column — chronological timeline of on-chain events (newest
+ *     first) with BscScan links.
+ *   Right column — live agent status pill from the grader.
+ *
+ * Conditional sections:
+ *   - x402 card if an agent status message mentions x402 or if
+ *     tUSDT Transfer events flow to the grader signer during the job.
+ *   - "Claim refund" button if state=Expired and the connected
+ *     wallet is the job's client.
+ */
+
+import React, { use, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { formatUnits } from 'viem'
+import { useAccount, useReadContract } from 'wagmi'
 import { CinematicBackground } from '@/components/layout/CinematicBackground'
-import { Badge } from '@/components/ui/badge'
+import { FloatingHeader } from '@/components/layout/FloatingHeader'
 import { Button } from '@/components/ui/button'
-import { 
-  Workflow, 
-  Activity, 
-  Zap, 
-  ShieldCheck, 
-  ExternalLink, 
-  Clock, 
-  ArrowUpRight, 
-  Code2, 
-  Lock,
-  ChevronRight,
-  Sparkles,
-  Coins,
-  FileCode2,
-  Cpu,
-  Landmark,
+import { bscTestnet } from '@/lib/contracts/addresses'
+import { erc20Abi } from '@/lib/contracts/erc20.abi'
+import { JobState, jobStateLabel, isTerminalState } from '@/lib/contracts/jobState'
+import { useAgentStatus } from '@/lib/hooks/useAgentStatus'
+import { useClaimRefund } from '@/lib/hooks/useClaimRefund'
+import { useJob, type Job } from '@/lib/hooks/useJob'
+import { useJobEvents, type TimelineEvent } from '@/lib/hooks/useJobEvents'
+import { useX402Payment } from '@/lib/hooks/useX402Payment'
+import { txExplorerUrl, trackTx } from '@/components/wiring/TxToast'
+import { usePublicClient } from 'wagmi'
+import { toast } from 'sonner'
+import {
+  ExternalLink,
   ScrollText,
-  User
+  Activity,
+  Coins,
+  ShieldCheck,
+  AlertTriangle,
+  Cpu,
+  CheckCircle2,
+  XCircle,
+  HourglassIcon,
+  Zap,
+  ArrowLeftRight,
+  FileCode2,
 } from 'lucide-react'
 
-export default function ProjectDetailPage() {
-  const [showX402, setShowX402] = useState(false)
-  const [activeStep, setActiveStep] = useState(0)
+type PageProps = {
+  readonly params: Promise<{ id: string }>
+}
 
+export default function ProjectDetailPage({ params }: PageProps) {
+  const { id } = use(params)
+  const parsed = parseJobId(id)
+
+  if (parsed === null) {
+    return <InvalidIdView raw={id} />
+  }
+
+  return <ProjectDetail jobId={parsed} rawId={id} />
+}
+
+function ProjectDetail({ jobId, rawId }: { jobId: bigint; rawId: string }) {
+  const job = useJob(jobId)
+  const hasJob = Boolean(job.data)
+  const events = useJobEvents(jobId, job.data?.state)
+  const agent = useAgentStatus(job.data?.state)
+  const x402 = useX402Payment({
+    jobExists: hasJob,
+    provider: job.data?.provider ?? null,
+    token: job.data?.token ?? null,
+  })
+
+  // Track whether the agent status ever surfaced an x402 event.
+  const sawX402Ref = useRef(false)
   useEffect(() => {
-    const timer = setTimeout(() => setShowX402(true), 5000)
-    const interval = setInterval(() => {
-      setActiveStep(prev => (prev + 1) % 4)
-    }, 4000)
-    return () => {
-      clearTimeout(timer)
-      clearInterval(interval)
+    const msg = agent.status?.message?.toLowerCase() ?? ''
+    const state = agent.status?.state?.toLowerCase() ?? ''
+    if (msg.includes('x402') || state.includes('x402') || state.includes('paying_x402')) {
+      sawX402Ref.current = true
     }
-  }, [])
+  }, [agent.status])
+
+  const tokenMeta = useTokenMeta(job.data?.token ?? null)
+  const showX402 = sawX402Ref.current || x402.data.length > 0
 
   return (
     <main className="min-h-screen bg-white text-black relative">
       <CinematicBackground />
       <FloatingHeader />
-      
+
       <div className="pt-40 pb-48 container mx-auto px-10 relative z-10">
-        
-        {/* Settlement Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-24 gap-12">
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center gap-4">
-              <div className="px-4 py-1.5 bg-primary/10 border border-primary/20 text-[11px] font-mono font-bold text-primary tracking-widest shadow-sm">PROJ-8821</div>
-              <div className="flex items-center gap-3 px-4 py-1.5 bg-black/[0.02] border border-black/5 shadow-sm">
-                <div className="w-2 h-2 rounded-full bg-primary animate-signal-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-black italic font-mono">Live_Execution</span>
+        <Header
+          jobId={jobId}
+          rawId={rawId}
+          job={job.data}
+          loading={job.isLoading}
+          error={job.error}
+          token={tokenMeta}
+        />
+
+        {job.isLoading && !job.data ? (
+          <LoadingView />
+        ) : job.error ? (
+          <ErrorView error={job.error} />
+        ) : !job.data ? (
+          <NotFoundView jobId={jobId} />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 mt-16">
+              <div className="lg:col-span-8 space-y-16">
+                <TimelineCard events={events.data} loading={events.isLoading} />
+                {showX402 && (
+                  <X402Card
+                    payments={x402.data}
+                    token={tokenMeta}
+                    statusMessage={agent.status?.message ?? null}
+                  />
+                )}
+                <ClientActions job={job.data} />
+              </div>
+
+              <div className="lg:col-span-4">
+                <div className="sticky top-40 space-y-8">
+                  <AgentStatusCard
+                    status={agent.status}
+                    jobState={job.data.state}
+                    isPolling={agent.isPolling}
+                  />
+                </div>
               </div>
             </div>
-            <h1 className="text-[4rem] font-bold uppercase tracking-tighter font-mono leading-[0.9] text-black italic">FIZZBUZZ_AUTONOMOUS_TR-1</h1>
+          </>
+        )}
+      </div>
+    </main>
+  )
+}
+
+/* -------------------------------- header -------------------------------- */
+
+function Header(props: {
+  jobId: bigint
+  rawId: string
+  job: Job | null
+  loading: boolean
+  error: Error | null
+  token: TokenMeta | null
+}) {
+  const state = props.job?.state ?? null
+  const badge = stateBadge(state)
+  const amount = useMemo(() => {
+    if (!props.job) return null
+    const decimals = props.token?.decimals ?? 18
+    return formatUnits(props.job.budget, decimals)
+  }, [props.job, props.token])
+
+  return (
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-4">
+          <div className="px-4 py-1.5 bg-primary/10 border border-primary/20 text-[11px] font-mono font-bold text-primary tracking-widest shadow-sm">
+            JOB-{props.rawId}
           </div>
-          <div className="flex items-center gap-10 p-10 slab-glass border-primary/20 bg-white/80 shadow-2xl shadow-primary/5">
-            <div>
-              <div className="text-[11px] text-primary uppercase font-bold tracking-[0.4em] mb-4 italic font-mono">Settlement_Escrow</div>
-              <div className="text-4xl font-bold font-mono tracking-tighter text-black">5,000.00 <span className="text-primary italic">USDT</span></div>
-            </div>
-            <div className="w-px h-16 bg-black/5" />
-            <Button className="h-16 px-10 rounded-none uppercase font-bold tracking-[0.3em] gap-3 bg-primary hover:bg-primary/90 text-white border-none text-[11px] italic shadow-xl shadow-primary/20">
-              Add_Liquidity <ArrowUpRight className="w-5 h-5" />
-            </Button>
+          <div
+            className={`flex items-center gap-3 px-4 py-1.5 border shadow-sm font-mono text-[10px] font-bold uppercase tracking-[0.4em] italic ${badge.classes}`}
+          >
+            <div className={`w-2 h-2 rounded-full ${badge.dot}`} />
+            <span>{badge.label}</span>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          
-          {/* Main Execution Flow */}
-          <div className="lg:col-span-8 space-y-16">
-            
-            {/* Tranche Status Card (Light) */}
-            <div className="slab-glass border-black/5 overflow-hidden shadow-2xl">
-              <div className="bg-black/[0.02] px-10 py-6 border-b border-black/5 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Cpu className="w-5 h-5 text-primary/60" />
-                  <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-black italic font-mono">Tranche T-01: Foundation_Logic</span>
-                </div>
-                <div className="px-4 py-1.5 bg-primary text-white font-mono font-bold text-[10px] tracking-widest italic shadow-lg shadow-primary/20">EXECUTING</div>
-              </div>
-              
-              <div className="p-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-                  <div className="space-y-10">
-                    <div>
-                      <div className="flex items-center gap-3 mb-6">
-                        <User className="w-4 h-4 text-primary/60" />
-                        <label className="text-[10px] font-bold uppercase tracking-[0.4em] text-black/40 block italic font-mono">Agent_Identification</label>
-                      </div>
-                      <div className="flex items-center gap-6 p-6 bg-black/[0.02] border border-black/5 group hover:border-primary/20 transition-all shadow-sm hover:shadow-primary/5">
-                        <div className="w-14 h-14 bg-primary/10 flex items-center justify-center border border-primary/10 rounded-sm">
-                          <Zap className="w-7 h-7 text-primary" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold font-mono text-black tracking-widest">0x4F9...A28B</div>
-                          <div className="text-[9px] text-black/40 font-bold uppercase tracking-[0.4em] mt-2 italic font-mono opacity-60">CryptoClaw Instance v2.1</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-6">
-                        <Code2 className="w-4 h-4 text-primary/60" />
-                        <label className="text-[10px] font-bold uppercase tracking-[0.4em] text-black/40 block italic font-mono">Task_Specification</label>
-                      </div>
-                      <div className="p-8 bg-slate-50 font-mono text-xs text-black/80 leading-relaxed border-l-4 border-primary shadow-inner relative overflow-hidden">
-                        <div className="absolute top-4 right-4 text-primary/20"><Zap className="w-4 h-4" /></div>
-                        <span className="text-primary italic">def</span> <span className="text-tertiary italic">fizzbuzz</span>(n: int) -&gt; list[str]:<br />
-                        &nbsp;&nbsp;<span className="text-primary/40 italic"># IMPLEMENTATION_IN_PROGRESS...</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-8">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Activity className="w-4 h-4 text-primary/60" />
-                      <label className="text-[10px] font-bold uppercase tracking-[0.4em] text-black/40 block italic font-mono">Execution_Pulse</label>
-                    </div>
-                    <div className="space-y-4">
-                      {[
-                        { label: 'Agent Handshake', status: 'COMPLETE' },
-                        { label: 'Resource Acquisition', status: 'IN_PROGRESS' },
-                        { label: 'Compute Cycle 1', status: 'PENDING' },
-                        { label: 'Verification Call', status: 'PENDING' },
-                      ].map((step, i) => (
-                        <div key={step.label} className={`flex items-center justify-between p-6 border transition-all duration-700 ${i === activeStep ? 'border-primary/40 bg-primary/5 scale-[1.02] shadow-xl shadow-primary/5' : 'border-black/5 opacity-30'}`}>
-                          <div className="flex items-center gap-4">
-                            <div className={`w-2.5 h-2.5 rounded-full ${i <= activeStep ? 'bg-primary animate-signal-pulse' : 'bg-black/10'}`} />
-                            <span className={`text-[11px] font-bold uppercase tracking-[0.3em] italic font-mono ${i === activeStep ? 'text-black' : 'text-black/40'}`}>{step.label}</span>
-                          </div>
-                          <span className="text-[10px] font-mono font-bold text-primary italic opacity-60 tracking-widest">{step.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Verification Buffer (Light) */}
-            <div className="p-12 slab-glass border-black/5 border-dashed bg-black/[0.02] shadow-inner">
-              <div className="flex items-center gap-6 mb-8">
-                <div className="w-12 h-12 bg-black/5 flex items-center justify-center border border-black/10">
-                  <FileCode2 className="w-7 h-7 text-primary/60" />
-                </div>
-                <h3 className="text-xl font-bold uppercase tracking-tighter font-mono italic text-black">Awaiting_Verification_Submission</h3>
-              </div>
-              <p className="text-lg text-black/60 leading-relaxed italic font-medium">
-                The agent has not yet pushed the final deliverable hash. The <span className="text-primary">DB Exchange</span> settlement layer is listening for the `submit()` call on BNB Chain. Capital will remain locked in escrow until the deterministic verifier emits a passing verdict.
-              </p>
-            </div>
+        <h1 className="text-[3rem] md:text-[4rem] font-bold uppercase tracking-tighter font-mono leading-[0.9] text-black italic">
+          Job_{props.rawId.padStart(4, '0')}
+        </h1>
+        {props.job && (
+          <div className="text-[11px] font-mono uppercase tracking-[0.35em] text-black/50 italic">
+            Task: {shortHash(props.job.taskHash)}
           </div>
+        )}
+      </div>
 
-          {/* Right: Settlement Tape (Light) */}
-          <div className="lg:col-span-4">
-            <div className="sticky top-40">
-              <div className="flex items-center gap-4 mb-12">
-                <div className="w-10 h-10 bg-primary/5 border border-primary/10 flex items-center justify-center rounded-sm shadow-sm">
-                  <ScrollText className="w-5 h-5 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold uppercase tracking-tighter font-mono italic text-black">Settlement_Tape</h2>
-              </div>
-              
-              <div className="relative border-l border-black/5 pl-10 space-y-16 py-4">
-                {[
-                  { time: '14:22:01', event: 'TRANCHE_ISSUED', msg: 'Project capital secured on-chain.', tx: '0xabc...123' },
-                  { time: '14:24:12', event: 'AGENT_HANDSHAKE', msg: 'Agent 0x4F9...A28B claimed execution rights.', tx: '0xdef...456' },
-                  { time: '14:25:45', event: 'RESOURCE_FUNDED', msg: 'Escrow buffer adjusted for compute access.', tx: '0xghi...789' },
-                ].map((item, i) => (
-                  <div key={i} className="relative group">
-                    <div className="absolute -left-[45px] top-1.5 w-3 h-3 bg-white border border-primary/40 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/20 transition-all duration-500" />
-                    <div className="text-[10px] font-mono font-bold text-black/20 mb-3 uppercase tracking-[0.4em] italic group-hover:text-primary transition-colors">{item.time} | {item.event}</div>
-                    <p className="text-lg font-medium text-black/80 mb-4 italic leading-tight">{item.msg}</p>
-                    <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-black/40 cursor-pointer hover:text-primary transition-colors italic">
-                      {item.tx} <ExternalLink className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                ))}
-                
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                  className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-[0.3em] text-primary italic font-mono"
-                >
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary animate-signal-pulse shadow-sm shadow-primary/20" />
-                  Monitoring_Onchain_Relay...
-                </motion.div>
-              </div>
-            </div>
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-10 p-10 slab-glass border-primary/20 bg-white/80 shadow-2xl shadow-primary/5">
+        <div>
+          <div className="text-[11px] text-primary uppercase font-bold tracking-[0.4em] mb-4 italic font-mono">
+            Settlement_Escrow
           </div>
+          <div className="text-3xl md:text-4xl font-bold font-mono tracking-tighter text-black">
+            {amount ?? '—'}{' '}
+            <span className="text-primary italic">
+              {props.token?.symbol ?? 'TOKEN'}
+            </span>
+          </div>
+        </div>
+        <div className="hidden md:block w-px h-16 bg-black/5" />
+        <div>
+          <div className="text-[11px] text-black/40 uppercase font-bold tracking-[0.4em] mb-4 italic font-mono">
+            Expires
+          </div>
+          <ExpiresCountdown
+            expiresAt={props.job?.expiresAt ?? null}
+            state={state}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ExpiresCountdown(props: {
+  expiresAt: bigint | null
+  state: number | null
+}) {
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
+  useEffect(() => {
+    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1_000)
+    return () => clearInterval(id)
+  }, [])
+
+  if (props.expiresAt === null) {
+    return <div className="font-mono text-lg tracking-tight text-black/50">—</div>
+  }
+  if (
+    props.state !== null &&
+    (props.state === JobState.Completed ||
+      props.state === JobState.Rejected)
+  ) {
+    return (
+      <div className="font-mono text-lg tracking-tight text-black/50 italic">
+        n/a
+      </div>
+    )
+  }
+  const secs = Number(props.expiresAt) - now
+  if (secs <= 0) {
+    return (
+      <div className="font-mono text-lg tracking-tight text-destructive italic">
+        EXPIRED
+      </div>
+    )
+  }
+  return (
+    <div className="font-mono text-lg tracking-tight text-black">
+      {formatDuration(secs)}
+    </div>
+  )
+}
+
+/* ------------------------------ timeline ------------------------------- */
+
+function TimelineCard(props: {
+  events: readonly TimelineEvent[]
+  loading: boolean
+}) {
+  const ordered = useMemo(
+    () => [...props.events].reverse(),
+    [props.events],
+  )
+
+  return (
+    <div className="slab-glass border-black/5 overflow-hidden shadow-2xl">
+      <div className="bg-black/[0.02] px-10 py-6 border-b border-black/5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <ScrollText className="w-5 h-5 text-primary/60" />
+          <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-black italic font-mono">
+            Settlement_Tape
+          </span>
+        </div>
+        <div className="text-[10px] font-mono font-bold text-black/40 italic tracking-widest">
+          {props.events.length} EVENTS
         </div>
       </div>
 
-      {/* Cinematic X402 Moment Overlay (Light Theme) */}
-      <AnimatePresence>
-        {showX402 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-white/90 backdrop-blur-xl flex items-center justify-center p-10"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 40 }}
-              animate={{ scale: 1, y: 0 }}
-              className="max-w-2xl w-full slab-glass border-primary/40 p-16 relative overflow-hidden bg-white/80 shadow-2xl"
-            >
-              <div className="relative z-20">
-                <div className="flex items-center gap-8 mb-16">
-                  <div className="w-24 h-24 bg-primary/10 border border-primary/20 flex items-center justify-center rounded-sm shadow-lg shadow-primary/5">
-                    <Coins className="w-12 h-12 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-5xl font-bold uppercase tracking-tighter font-mono italic leading-none text-black">X402_Settlement</h2>
-                    <p className="text-[11px] text-black/40 uppercase font-bold tracking-[0.5em] mt-3 italic font-mono opacity-60">Real-time resource payment</p>
-                  </div>
-                </div>
+      <div className="p-10">
+        {props.loading && props.events.length === 0 ? (
+          <div className="text-[11px] font-mono italic text-black/40 tracking-widest uppercase">
+            Scanning_Chain...
+          </div>
+        ) : ordered.length === 0 ? (
+          <div className="text-[11px] font-mono italic text-black/40 tracking-widest uppercase">
+            No_Events_Yet
+          </div>
+        ) : (
+          <ol className="relative border-l border-black/5 pl-10 space-y-10 py-2">
+            {ordered.map((ev) => (
+              <TimelineRow
+                key={`${ev.txHash}-${ev.logIndex}-${ev.type}`}
+                event={ev}
+              />
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+  )
+}
 
-                <div className="space-y-8 mb-16">
-                  <div className="flex justify-between items-center py-6 border-b border-black/5">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-black/40 italic font-mono">Operation</span>
-                    <span className="font-mono font-bold text-xl text-black italic tracking-tighter">LLM-API-CALL::GPT-4-TURBO</span>
-                  </div>
-                  <div className="flex justify-between items-center py-6 border-b border-black/5">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-black/40 italic font-mono">Value_Transfer</span>
-                    <span className="font-mono font-bold text-4xl text-primary italic tracking-tighter">0.01 USDT</span>
-                  </div>
-                  <div className="flex justify-between items-center py-6 border-b border-black/5">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.4em] text-black/40 italic font-mono">Status</span>
-                    <div className="flex items-center gap-4">
-                      <div className="w-2.5 h-2.5 rounded-full bg-primary animate-signal-pulse shadow-sm shadow-primary/20" />
-                      <span className="font-mono font-bold uppercase text-black tracking-widest italic">CONFIRMED_ON_CHAIN</span>
+function TimelineRow({ event }: { event: TimelineEvent }) {
+  const meta = eventMeta(event.type)
+  const when = event.timestamp
+    ? relativeTime(event.timestamp)
+    : 'just now'
+  return (
+    <li className="relative group">
+      <div className={`absolute -left-[45px] top-1 w-3 h-3 border ${meta.dotClasses}`} />
+      <div className="flex items-center gap-3 text-[10px] font-mono font-bold text-black/40 mb-2 uppercase tracking-[0.35em] italic">
+        <meta.icon className="w-3.5 h-3.5" />
+        <span className={meta.labelColor}>{event.type}</span>
+        <span className="text-black/30">·</span>
+        <span>block {event.blockNumber.toString()}</span>
+        <span className="text-black/30">·</span>
+        <span>{when}</span>
+      </div>
+      {renderEventArgs(event)}
+      <a
+        href={txExplorerUrl(event.txHash)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 text-[11px] font-mono font-bold text-black/40 hover:text-primary transition-colors italic"
+      >
+        {shortHash(event.txHash)}
+        <ExternalLink className="w-3.5 h-3.5" />
+      </a>
+    </li>
+  )
+}
+
+function renderEventArgs(event: TimelineEvent): React.ReactNode {
+  const a = event.args
+  const bits: string[] = []
+  if (event.type === 'JobFunded') {
+    const token = a.token as string | undefined
+    const amount = a.amount as bigint | undefined
+    if (token) bits.push(`token=${shortHash(token)}`)
+    if (typeof amount === 'bigint') bits.push(`amount=${amount.toString()}`)
+  } else if (event.type === 'JobSubmitted') {
+    const h = a.deliverableHash as string | undefined
+    if (h) bits.push(`deliverable=${shortHash(h)}`)
+  } else if (event.type === 'JobCompleted' || event.type === 'JobRejected') {
+    const r = a.reason as string | undefined
+    if (r) bits.push(`reason="${r}"`)
+  } else if (event.type === 'VerdictSubmitted') {
+    const passed = a.passed as boolean | undefined
+    if (typeof passed === 'boolean') bits.push(passed ? 'passed=true' : 'passed=false')
+  } else if (event.type === 'JobCreated') {
+    const client = a.client as string | undefined
+    const provider = a.provider as string | undefined
+    if (client) bits.push(`client=${shortHash(client)}`)
+    if (provider) bits.push(`provider=${shortHash(provider)}`)
+  } else if (event.type === 'Refunded') {
+    const amount = a.amount as bigint | undefined
+    if (typeof amount === 'bigint') bits.push(`amount=${amount.toString()}`)
+  }
+  if (bits.length === 0) return null
+  return (
+    <p className="text-sm text-black/70 mb-2 font-mono italic leading-snug">
+      {bits.join(' · ')}
+    </p>
+  )
+}
+
+/* --------------------------- agent status card -------------------------- */
+
+function AgentStatusCard(props: {
+  status: import('@/lib/grader/types').StatusResponse | null
+  jobState: number
+  isPolling: boolean
+}) {
+  const terminal = isTerminalState(props.jobState)
+  const st = props.status
+  const label = terminal ? 'Agent_Idle' : (st?.state ?? 'connecting')
+
+  return (
+    <div className="slab-glass border-black/5 p-8 bg-white/70 shadow-xl">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-10 h-10 bg-primary/5 border border-primary/10 flex items-center justify-center rounded-sm">
+          <Cpu className="w-5 h-5 text-primary" />
+        </div>
+        <h2 className="text-lg font-bold uppercase tracking-tighter font-mono italic text-black">
+          Agent_Relay
+        </h2>
+      </div>
+
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 mb-6 border font-mono text-[10px] font-bold uppercase tracking-[0.3em] italic ${
+        terminal
+          ? 'bg-black/5 border-black/10 text-black/40'
+          : 'bg-primary/5 border-primary/20 text-primary'
+      }`}>
+        <div
+          className={`w-2 h-2 rounded-full ${
+            terminal ? 'bg-black/30' : 'bg-primary animate-signal-pulse'
+          }`}
+        />
+        {label}
+      </div>
+
+      <div className="space-y-5">
+        <Field label="Last_Message">
+          <span className="text-sm text-black/80 font-medium italic">
+            {terminal
+              ? 'Job finalized on-chain.'
+              : st?.message ?? '—'}
+          </span>
+        </Field>
+        <Field label="Job_Id_Reported">
+          <span className="font-mono text-sm text-black/70">
+            {st?.job_id ?? '—'}
+          </span>
+        </Field>
+        <Field label="Updated">
+          <span className="font-mono text-xs text-black/50 italic">
+            {st?.updated_at ? relativeTime(st.updated_at) : '—'}
+          </span>
+        </Field>
+        <Field label="Polling">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] italic text-black/50">
+            {terminal ? 'Stopped' : props.isPolling ? 'Every_3s' : 'Paused'}
+          </span>
+        </Field>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[9px] font-bold uppercase tracking-[0.4em] text-black/40 italic font-mono">
+        {label}
+      </span>
+      {children}
+    </div>
+  )
+}
+
+/* ------------------------------- x402 card ----------------------------- */
+
+function X402Card(props: {
+  payments: readonly import('@/lib/hooks/useX402Payment').X402Payment[]
+  token: TokenMeta | null
+  statusMessage: string | null
+}) {
+  return (
+    <div className="slab-glass border-primary/20 p-10 bg-primary/[0.02] shadow-xl">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-12 h-12 bg-primary/10 border border-primary/20 flex items-center justify-center rounded-sm">
+          <Coins className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold uppercase tracking-tighter font-mono italic text-black">
+            x402_Resource_Payment
+          </h3>
+          <p className="text-[10px] text-black/40 font-bold uppercase tracking-[0.4em] italic font-mono mt-1">
+            Agent_Paid_For_Compute
+          </p>
+        </div>
+      </div>
+
+      {props.payments.length === 0 ? (
+        <p className="text-sm text-black/60 italic font-medium">
+          Agent reported an x402 payment: {props.statusMessage ?? '—'}
+        </p>
+      ) : (
+        <ul className="space-y-4">
+          {props.payments.map((p) => {
+            const decimals = props.token?.decimals ?? 18
+            const symbol = props.token?.symbol ?? 'TOKEN'
+            return (
+              <li
+                key={p.txHash}
+                className="flex items-center justify-between p-6 border border-black/5 bg-white/60"
+              >
+                <div className="flex items-center gap-4">
+                  <ArrowLeftRight className="w-5 h-5 text-primary" />
+                  <div>
+                    <div className="font-mono text-lg font-bold text-black tracking-tighter">
+                      {formatUnits(p.value, decimals)}{' '}
+                      <span className="text-primary italic">{symbol}</span>
+                    </div>
+                    <div className="text-[10px] font-mono text-black/40 italic uppercase tracking-widest">
+                      block {p.blockNumber.toString()}
                     </div>
                   </div>
                 </div>
-
-                <p className="text-lg text-black/60 leading-relaxed mb-12 font-medium italic">
-                  &quot;The agent just autonomously paid for its own compute resources via **DB Exchange** x402 facilitator. No manual intervention required. Continuous execution secured.&quot;
-                </p>
-
-                <Button 
-                  onClick={() => setShowX402(false)}
-                  className="w-full h-20 rounded-none uppercase font-bold tracking-[0.3em] text-lg bg-black text-white hover:bg-primary transition-all border-none italic shadow-2xl shadow-black/20"
+                <a
+                  href={txExplorerUrl(p.txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-[11px] font-mono font-bold text-primary italic hover:underline"
                 >
-                  Return_To_Floor
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  {shortHash(p.txHash)}
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
 
+/* ----------------------------- client actions --------------------------- */
+
+function ClientActions({ job }: { job: Job }) {
+  const { address, isConnected } = useAccount()
+  const publicClient = usePublicClient()
+  const claim = useClaimRefund()
+
+  const isClient =
+    isConnected &&
+    address?.toLowerCase() === job.client.toLowerCase()
+  const canClaim = job.state === JobState.Expired && isClient
+
+  if (!canClaim) return null
+
+  const onClaim = async () => {
+    try {
+      const hash = await claim.submit(job.jobId)
+      if (publicClient) {
+        await trackTx({
+          hash,
+          publicClient,
+          label: 'Claim refund',
+        })
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Refund failed'
+      toast.error(msg)
+    }
+  }
+
+  return (
+    <div className="slab-glass border-destructive/30 p-10 bg-destructive/[0.02] shadow-xl">
+      <div className="flex items-center gap-4 mb-6">
+        <AlertTriangle className="w-5 h-5 text-destructive" />
+        <h3 className="text-lg font-bold uppercase tracking-tighter font-mono italic text-black">
+          Job_Expired
+        </h3>
+      </div>
+      <p className="text-sm text-black/60 italic mb-8 font-medium">
+        Escrow remains locked until the client reclaims it.
+      </p>
+      <Button
+        onClick={onClaim}
+        disabled={claim.isPending}
+        className="h-16 px-10 rounded-none uppercase font-bold tracking-[0.3em] gap-3 bg-destructive hover:bg-destructive/90 text-white border-none text-[11px] italic"
+      >
+        {claim.isPending ? 'Claiming...' : 'Claim_Refund'}
+      </Button>
+      {claim.error && (
+        <p className="mt-4 text-xs font-mono text-destructive italic">
+          {claim.error.message}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------ sub-views ------------------------------- */
+
+function LoadingView() {
+  return (
+    <div className="mt-20 p-16 slab-glass border-black/5 bg-white/60 text-center">
+      <div className="text-[11px] font-mono italic text-black/40 tracking-widest uppercase">
+        Loading_Onchain_State...
+      </div>
+    </div>
+  )
+}
+
+function ErrorView({ error }: { error: Error }) {
+  return (
+    <div className="mt-20 p-16 slab-glass border-destructive/30 bg-destructive/[0.02]">
+      <div className="flex items-center gap-4 mb-4">
+        <XCircle className="w-6 h-6 text-destructive" />
+        <h2 className="text-xl font-mono font-bold uppercase tracking-tighter italic">
+          Chain_Read_Failed
+        </h2>
+      </div>
+      <p className="text-sm text-black/60 font-mono italic">{error.message}</p>
+    </div>
+  )
+}
+
+function NotFoundView({ jobId }: { jobId: bigint }) {
+  return (
+    <div className="mt-20 p-16 slab-glass border-black/5 bg-white/60">
+      <div className="flex items-center gap-4 mb-4">
+        <AlertTriangle className="w-6 h-6 text-primary" />
+        <h2 className="text-xl font-mono font-bold uppercase tracking-tighter italic">
+          Job_Not_Found
+        </h2>
+      </div>
+      <p className="text-sm text-black/60 font-mono italic">
+        No job with id {jobId.toString()} exists on this network.
+      </p>
+      <Link
+        href="/markets"
+        className="inline-block mt-6 text-[11px] font-mono font-bold uppercase tracking-[0.4em] text-primary italic hover:underline"
+      >
+        View_Active_Jobs →
+      </Link>
+    </div>
+  )
+}
+
+function InvalidIdView({ raw }: { raw: string }) {
+  return (
+    <main className="min-h-screen bg-white text-black relative">
+      <CinematicBackground />
+      <FloatingHeader />
+      <div className="pt-40 pb-48 container mx-auto px-10 relative z-10">
+        <div className="p-16 slab-glass border-destructive/30 bg-destructive/[0.02] max-w-2xl">
+          <div className="flex items-center gap-4 mb-4">
+            <XCircle className="w-6 h-6 text-destructive" />
+            <h2 className="text-2xl font-mono font-bold uppercase tracking-tighter italic">
+              Invalid_Job_Id
+            </h2>
+          </div>
+          <p className="text-sm text-black/60 font-mono italic mb-6">
+            &quot;{raw}&quot; is not a valid uint job id.
+          </p>
+          <Link
+            href="/markets"
+            className="text-[11px] font-mono font-bold uppercase tracking-[0.4em] text-primary italic hover:underline"
+          >
+            Back_To_Markets →
+          </Link>
+        </div>
+      </div>
     </main>
   )
+}
+
+/* -------------------------------- utils -------------------------------- */
+
+type TokenMeta = { readonly symbol: string; readonly decimals: number }
+
+function useTokenMeta(token: `0x${string}` | null): TokenMeta | null {
+  const zero = '0x0000000000000000000000000000000000000000'
+  const enabled = Boolean(token) && token !== zero
+
+  const symbol = useReadContract({
+    abi: erc20Abi,
+    address: token ?? undefined,
+    functionName: 'symbol',
+    query: { enabled },
+  })
+  const decimals = useReadContract({
+    abi: erc20Abi,
+    address: token ?? undefined,
+    functionName: 'decimals',
+    query: { enabled },
+  })
+
+  if (!enabled) return null
+  if (symbol.data === undefined || decimals.data === undefined) return null
+  return {
+    symbol: symbol.data as string,
+    decimals: Number(decimals.data),
+  }
+}
+
+function parseJobId(raw: string): bigint | null {
+  if (!/^\d+$/.test(raw)) return null
+  try {
+    const big = BigInt(raw)
+    if (big < 0n) return null
+    return big
+  } catch {
+    return null
+  }
+}
+
+function shortHash(hash: string): string {
+  if (!hash || hash.length < 12) return hash
+  return `${hash.slice(0, 6)}…${hash.slice(-4)}`
+}
+
+function formatDuration(secs: number): string {
+  if (secs <= 0) return 'EXPIRED'
+  const d = Math.floor(secs / 86_400)
+  const h = Math.floor((secs % 86_400) / 3_600)
+  const m = Math.floor((secs % 3_600) / 60)
+  const s = secs % 60
+  if (d > 0) return `${d}d ${h}h`
+  if (h > 0) return `${h}h ${m}m`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
+}
+
+function relativeTime(tsSec: number): string {
+  const now = Math.floor(Date.now() / 1000)
+  const diff = now - tsSec
+  if (diff < 5) return 'just now'
+  if (diff < 60) return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
+
+function stateBadge(state: number | null): {
+  readonly label: string
+  readonly classes: string
+  readonly dot: string
+} {
+  if (state === null) {
+    return {
+      label: 'Loading',
+      classes: 'bg-black/[0.02] border-black/5 text-black/50',
+      dot: 'bg-black/30',
+    }
+  }
+  const label = jobStateLabel(state).toUpperCase()
+  switch (state) {
+    case JobState.Open:
+      return {
+        label,
+        classes: 'bg-amber-50 border-amber-200 text-amber-700',
+        dot: 'bg-amber-500 animate-pulse',
+      }
+    case JobState.Funded:
+      return {
+        label,
+        classes: 'bg-primary/10 border-primary/20 text-primary',
+        dot: 'bg-primary animate-signal-pulse',
+      }
+    case JobState.Submitted:
+      return {
+        label,
+        classes: 'bg-blue-50 border-blue-200 text-blue-700',
+        dot: 'bg-blue-500 animate-pulse',
+      }
+    case JobState.Completed:
+      return {
+        label,
+        classes: 'bg-green-50 border-green-200 text-green-700',
+        dot: 'bg-green-500',
+      }
+    case JobState.Rejected:
+      return {
+        label,
+        classes: 'bg-rose-50 border-rose-200 text-rose-700',
+        dot: 'bg-rose-500',
+      }
+    case JobState.Expired:
+      return {
+        label,
+        classes: 'bg-black/5 border-black/10 text-black/60',
+        dot: 'bg-black/40',
+      }
+    default:
+      return {
+        label,
+        classes: 'bg-black/[0.02] border-black/5 text-black/50',
+        dot: 'bg-black/30',
+      }
+  }
+}
+
+function eventMeta(type: string): {
+  readonly icon: React.ComponentType<{ className?: string }>
+  readonly dotClasses: string
+  readonly labelColor: string
+} {
+  switch (type) {
+    case 'JobCreated':
+      return {
+        icon: FileCode2,
+        dotClasses: 'bg-white border-primary/40',
+        labelColor: 'text-primary',
+      }
+    case 'JobFunded':
+      return {
+        icon: Coins,
+        dotClasses: 'bg-primary border-primary',
+        labelColor: 'text-primary',
+      }
+    case 'JobSubmitted':
+      return {
+        icon: Zap,
+        dotClasses: 'bg-white border-blue-500',
+        labelColor: 'text-blue-700',
+      }
+    case 'JobCompleted':
+      return {
+        icon: CheckCircle2,
+        dotClasses: 'bg-green-500 border-green-500',
+        labelColor: 'text-green-700',
+      }
+    case 'JobRejected':
+      return {
+        icon: XCircle,
+        dotClasses: 'bg-rose-500 border-rose-500',
+        labelColor: 'text-rose-700',
+      }
+    case 'JobExpired':
+      return {
+        icon: HourglassIcon,
+        dotClasses: 'bg-black/40 border-black/40',
+        labelColor: 'text-black/60',
+      }
+    case 'Refunded':
+      return {
+        icon: ArrowLeftRight,
+        dotClasses: 'bg-amber-500 border-amber-500',
+        labelColor: 'text-amber-700',
+      }
+    case 'VerdictSubmitted':
+      return {
+        icon: ShieldCheck,
+        dotClasses: 'bg-white border-tertiary',
+        labelColor: 'text-tertiary',
+      }
+    default:
+      return {
+        icon: Activity,
+        dotClasses: 'bg-black/20 border-black/20',
+        labelColor: 'text-black/60',
+      }
+  }
 }
